@@ -1,0 +1,4145 @@
+openapi: 3.0.0
+info:
+  title: E-commerce API
+  description: API for E-commerce Platform
+  contact:
+    name: Brandon Dunbar
+    email: brandon.dunbar97@gmail.com
+  license:
+    name: AGPL 3.0
+    url: https://www.gnu.org/licenses/agpl-3.0.en.html
+  version: 1.0.0
+servers:
+- url: http://localhost:8080
+  description: Local development server
+security:
+- BearerAuth: []
+paths:
+  /api/authorize:
+    post:
+      tags:
+      - Authentication
+      summary: Authenticate a user and return a JWT token
+      description: "Authenticate with a username and password to receive a JWT token.\
+        \ \nThis token should be included in the Authorization header for subsequent\
+        \ requests to protected endpoints.\n"
+      operationId: authenticate_user
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/api_authorize_body'
+            example:
+              username: john_doe
+              password: securepassword123
+        required: true
+      responses:
+        "200":
+          description: Authentication successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inline_response_200'
+        "400":
+          description: "Bad request (e.g., missing required fields)"
+        "401":
+          description: Authentication failed
+      x-openapi-router-controller: swagger_server.controllers.authentication_controller
+  /api/users/register:
+    post:
+      tags:
+      - Users
+      summary: Register a new user
+      description: "Register a new user with the provided details. Once registered,\
+        \ the user can authenticate using the /api/authorize endpoint. <br>Note -\
+        \ Passwords must be at least 8 characters long, contain at least 1 number\
+        \ and 1 special character."
+      operationId: api_users_register_post
+      requestBody:
+        description: User data needed for registration
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRegistration'
+        required: true
+      responses:
+        "201":
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+          links:
+            AuthenticateUser:
+              operationId: AuthenticateUser
+              description: "After registering, you can authenticate to receive a JWT\
+                \ token."
+        "400":
+          description: Invalid request data
+        "401":
+          description: Unauthorized
+        "409":
+          description: Username or email already exists
+        "500":
+          description: Internal server error
+      x-openapi-router-controller: swagger_server.controllers.users_controller
+  /api/users/login:
+    post:
+      tags:
+      - Users
+      summary: Authenticate a user
+      description: "Authenticate a user using their username (or email) and password.\
+        \ \nIf successful, a JWT token will be returned for subsequent authenticated\
+        \ requests. \nNote: There's a rate limit of 5 requests per minute to prevent\
+        \ brute force attacks.\n"
+      operationId: api_users_login_post
+      requestBody:
+        description: User login credentials
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserLogin'
+        required: true
+      responses:
+        "200":
+          description: Authentication successful and JWT token returned.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inline_response_200'
+        "400":
+          description: "Bad request (e.g., missing required fields)"
+        "401":
+          description: Authentication failed
+        "403":
+          description: Account locked or suspended
+        "500":
+          description: Internal server error
+      x-openapi-router-controller: swagger_server.controllers.users_controller
+  /api/users/profile:
+    get:
+      tags:
+      - Users
+      summary: Retrieve the authenticated user's profile
+      description: Returns the profile details of the currently authenticated user.
+      operationId: api_users_profile_get
+      responses:
+        "200":
+          description: User profile data successfully retrieved.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "404":
+          description: User profile not found
+        "500":
+          description: Internal server error
+      security:
+      - BearerAuth: []
+      x-openapi-router-controller: swagger_server.controllers.users_controller
+    put:
+      tags:
+      - Users
+      summary: Update the authenticated user's profile
+      description: Updates the profile details of the currently authenticated user
+        based on the provided data.
+      operationId: api_users_profile_put
+      requestBody:
+        description: Updated user profile data
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserProfile'
+        required: true
+      responses:
+        "200":
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+        "400":
+          description: Invalid request data
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "404":
+          description: User profile not found
+        "500":
+          description: Internal server error
+      security:
+      - BearerAuth: []
+      x-openapi-router-controller: swagger_server.controllers.users_controller
+    delete:
+      tags:
+      - Users
+      summary: Delete user's account
+      description: Allows the authenticated user to permanently delete their account.
+        This action should be used with caution as it might be irreversible.
+      operationId: api_users_profile_delete
+      responses:
+        "200":
+          description: User account deleted successfully
+        "401":
+          description: Unauthorized
+        "403":
+          description: "Forbidden (e.g., if there are certain restrictions preventing\
+            \ the user from deleting their account)"
+        "500":
+          description: Internal server error
+      security:
+      - BearerAuth: []
+      x-openapi-router-controller: swagger_server.controllers.users_controller
+  /api/users/orders:
+    get:
+      tags:
+      - Users
+      summary: Retrieve user's order history
+      description: Allows the authenticated user to view a list of their past orders.
+      operationId: api_users_orders_get
+      parameters:
+      - name: page
+        in: query
+        description: Page number for pagination.
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: integer
+      - name: limit
+        in: query
+        description: Number of orders per page for pagination.
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: integer
+      - name: status
+        in: query
+        description: "Filter orders by status (e.g., \"completed\", \"pending\", \"\
+          canceled\")."
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: List of orders successfully retrieved.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Order'
+                x-content-type: application/json
+        "401":
+          description: Unauthorized
+        "500":
+          description: Internal server error
+      security:
+      - BearerAuth: []
+      x-openapi-router-controller: swagger_server.controllers.users_controller
+  /api/users/profile/password:
+    put:
+      tags:
+      - Users
+      summary: Change the user's password
+      description: Allows the authenticated user to change their password.
+      operationId: api_users_profile_password_put
+      requestBody:
+        description: Current and new password details
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/profile_password_body'
+        required: true
+      responses:
+        "200":
+          description: Password changed successfully
+        "400":
+          description: "Invalid request data (e.g., newPassword and confirmPassword\
+            \ don't match)"
+        "401":
+          description: "Unauthorized (e.g., currentPassword is incorrect)"
+        "403":
+          description: "Forbidden (e.g., user might be locked out after multiple failed\
+            \ attempts)"
+        "500":
+          description: Internal server error
+      security:
+      - BearerAuth: []
+      x-openapi-router-controller: swagger_server.controllers.users_controller
+  /api/users/forgot-password:
+    post:
+      tags:
+      - Users
+      summary: Request password reset
+      description: "Allows a user to request a password reset link or code, which\
+        \ will be sent to their registered email."
+      operationId: api_users_forgot_password_post
+      requestBody:
+        description: Email address associated with the user's account
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/users_forgotpassword_body'
+        required: true
+      responses:
+        "200":
+          description: Password reset request received. Check your email for further
+            instructions.
+        "400":
+          description: "Invalid request data (e.g., email format incorrect)"
+        "404":
+          description: User not found with the provided email
+        "500":
+          description: Internal server error
+      x-openapi-router-controller: swagger_server.controllers.users_controller
+  /api/users/reset-password:
+    post:
+      tags:
+      - Users
+      summary: Reset user password
+      description: Allows a user to reset their password using a valid reset token
+        or code received in their email.
+      operationId: api_users_reset_password_post
+      requestBody:
+        description: Password reset token and new password details
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/users_resetpassword_body'
+        required: true
+      responses:
+        "200":
+          description: Password reset successfully
+        "400":
+          description: "Invalid request data (e.g., newPassword and confirmPassword\
+            \ don't match or invalid resetToken format)"
+        "401":
+          description: Invalid or expired reset token
+        "500":
+          description: Internal server error
+      x-openapi-router-controller: swagger_server.controllers.users_controller
+  /api/users/wishlists:
+    get:
+      tags:
+      - Users
+      summary: Retrieve user's wishlists
+      description: Allows the authenticated user to view a list of their wishlists.
+      operationId: api_users_wishlists_get
+      responses:
+        "200":
+          description: List of wishlists successfully retrieved.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Wishlist'
+                x-content-type: application/json
+        "401":
+          description: Unauthorized
+        "500":
+          description: Internal server error
+      security:
+      - BearerAuth: []
+      x-openapi-router-controller: swagger_server.controllers.users_controller
+    post:
+      tags:
+      - Users
+      summary: Create a new wishlist
+      description: Allows the authenticated user to create a new wishlist.
+      operationId: api_users_wishlists_post
+      requestBody:
+        description: Wishlist details
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Wishlist'
+        required: true
+      responses:
+        "201":
+          description: Wishlist created successfully
+        "400":
+          description: Invalid request data
+        "401":
+          description: Unauthorized
+        "500":
+          description: Internal server error
+      security:
+      - BearerAuth: []
+      x-openapi-router-controller: swagger_server.controllers.users_controller
+  /api/users/notifications:
+    get:
+      tags:
+      - Users
+      summary: Retrieve user's notifications
+      description: Allows the authenticated user to view a list of their notifications.
+      operationId: api_users_notifications_get
+      parameters:
+      - name: status
+        in: query
+        description: Filter notifications by status.
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: string
+          enum:
+          - unread
+          - read
+          - all
+      responses:
+        "200":
+          description: List of notifications successfully retrieved.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Notification'
+                x-content-type: application/json
+        "401":
+          description: Unauthorized
+        "500":
+          description: Internal server error
+      security:
+      - BearerAuth: []
+      x-openapi-router-controller: swagger_server.controllers.users_controller
+    put:
+      tags:
+      - Users
+      summary: Mark notifications as read
+      description: Allows the authenticated user to mark specific notifications or
+        all notifications as read.
+      operationId: api_users_notifications_put
+      requestBody:
+        description: IDs of notifications to mark as read or a command to mark all
+          as read.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/users_notifications_body'
+        required: true
+      responses:
+        "200":
+          description: Notifications marked as read successfully
+        "400":
+          description: Invalid request data
+        "401":
+          description: Unauthorized
+        "500":
+          description: Internal server error
+      security:
+      - BearerAuth: []
+      x-openapi-router-controller: swagger_server.controllers.users_controller
+  /api/users/reviews:
+    get:
+      tags:
+      - Users
+      summary: Retrieve user's product reviews
+      description: Allows the authenticated user to view a list of their product reviews.
+      operationId: api_users_reviews_get
+      responses:
+        "200":
+          description: List of reviews successfully retrieved.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Review'
+                x-content-type: application/json
+        "401":
+          description: Unauthorized
+        "500":
+          description: Internal server error
+      security:
+      - BearerAuth: []
+      x-openapi-router-controller: swagger_server.controllers.users_controller
+    post:
+      tags:
+      - Users
+      summary: Create a new product review
+      description: Allows the authenticated user to submit a review for a product.
+      operationId: api_users_reviews_post
+      requestBody:
+        description: Review details
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewInput'
+        required: true
+      responses:
+        "201":
+          description: Review submitted successfully
+        "400":
+          description: Invalid request data
+        "401":
+          description: Unauthorized
+        "500":
+          description: Internal server error
+      security:
+      - BearerAuth: []
+      x-openapi-router-controller: swagger_server.controllers.users_controller
+  /api/admin/notifications:
+    post:
+      tags:
+      - Admin
+      summary: Send a notification to a user
+      description: "Allows authorized entities (e.g., administrators or automated\
+        \ systems) to send a notification to a specific user."
+      operationId: api_admin_notifications_post
+      requestBody:
+        description: Notification details and target user
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/admin_notifications_body'
+        required: true
+      responses:
+        "201":
+          description: Notification sent successfully
+        "400":
+          description: Invalid request data
+        "401":
+          description: Unauthorized
+        "500":
+          description: Internal server error
+      security:
+      - BearerAuth: []
+      x-openapi-router-controller: swagger_server.controllers.admin_controller
+  /api/products:
+    get:
+      tags:
+      - Products
+      summary: List all products
+      description: "Returns a list of all products. Supports pagination, filtering,\
+        \ and sorting."
+      operationId: api_products_get
+      parameters:
+      - name: page
+        in: query
+        description: Page number for pagination.
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: integer
+      - name: limit
+        in: query
+        description: Number of products per page for pagination.
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: integer
+      - name: sort
+        in: query
+        description: "Sorting criteria (e.g., \"price_asc\", \"name_desc\")."
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: List of products successfully retrieved.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Product'
+                x-content-type: application/json
+        "500":
+          description: Internal server error
+      x-openapi-router-controller: swagger_server.controllers.products_controller
+    post:
+      tags:
+      - Products
+      summary: Add a new product
+      description: Creates a new product based on the provided data and returns the
+        details of the newly added product.
+      operationId: api_products_post
+      requestBody:
+        description: Product data
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Product'
+        required: true
+      responses:
+        "201":
+          description: Product created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        "400":
+          description: Invalid request data
+        "401":
+          description: Unauthorized
+        "403":
+          description: Forbidden
+        "500":
+          description: Internal server error
+      security:
+      - BearerAuth: []
+      x-openapi-router-controller: swagger_server.controllers.products_controller
+  /api/products/{productId}:
+    get:
+      tags:
+      - Products
+      summary: Retrieve details of a specific product
+      description: Returns the detailed information of a product identified by the
+        provided product ID.
+      operationId: api_products_product_id_get
+      parameters:
+      - name: productId
+        in: path
+        description: ID of the product to retrieve
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: integer
+      responses:
+        "200":
+          description: Product details successfully retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        "400":
+          description: Invalid product ID format
+        "401":
+          description: Unauthorized
+        "404":
+          description: Product not found
+        "500":
+          description: Internal server error
+      x-openapi-router-controller: swagger_server.controllers.products_controller
+  /api/products/categories:
+    get:
+      tags:
+      - Products
+      summary: Retrieve all product categories
+      description: Provides a list of all product categories available.
+      operationId: api_products_categories_get
+      responses:
+        "200":
+          description: List of product categories successfully retrieved.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Category'
+                x-content-type: application/json
+        "500":
+          description: Internal server error
+      x-openapi-router-controller: swagger_server.controllers.products_controller
+    post:
+      tags:
+      - Products
+      summary: Create a new product category
+      description: Allows administrators to add a new product category.
+      operationId: api_products_categories_post
+      requestBody:
+        description: Category details
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryInput'
+        required: true
+      responses:
+        "201":
+          description: Product category created successfully
+        "400":
+          description: Invalid request data
+        "401":
+          description: Unauthorized
+        "500":
+          description: Internal server error
+      security:
+      - BearerAuth: []
+      x-openapi-router-controller: swagger_server.controllers.products_controller
+  /api/products/search:
+    get:
+      tags:
+      - Products
+      summary: Search for products
+      description: "Allows users to search for products based on keywords, categories,\
+        \ price range, and other criteria."
+      operationId: api_products_search_get
+      parameters:
+      - name: keyword
+        in: query
+        description: Search term or keyword.
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: string
+      - name: categoryId
+        in: query
+        description: ID of the product category to filter by.
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: integer
+      - name: minPrice
+        in: query
+        description: Minimum price for filtering.
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: number
+          format: float
+      - name: maxPrice
+        in: query
+        description: Maximum price for filtering.
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: number
+          format: float
+      - name: sortBy
+        in: query
+        description: "Sort the results by date, price, or rating."
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: string
+          enum:
+          - date
+          - price
+          - rating
+      - name: sortOrder
+        in: query
+        description: Order of sorting (ascending or descending).
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: string
+          enum:
+          - asc
+          - desc
+      responses:
+        "200":
+          description: Search results successfully retrieved.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Product'
+                x-content-type: application/json
+        "400":
+          description: Invalid request parameters.
+        "500":
+          description: Internal server error
+      x-openapi-router-controller: swagger_server.controllers.products_controller
+  /api/products/{productId}/reviews:
+    get:
+      tags:
+      - Products
+      summary: Retrieve reviews for a specific product
+      description: Provides a list of reviews for the given product.
+      operationId: api_products_product_id_reviews_get
+      parameters:
+      - name: productId
+        in: path
+        description: ID of the product to retrieve reviews for.
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: integer
+      responses:
+        "200":
+          description: List of reviews successfully retrieved.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Review'
+                x-content-type: application/json
+        "404":
+          description: Product not found
+        "500":
+          description: Internal server error
+      x-openapi-router-controller: swagger_server.controllers.products_controller
+    post:
+      tags:
+      - Products
+      summary: Add a review for a specific product
+      description: Allows authenticated users to submit a review for the given product.
+      operationId: api_products_product_id_reviews_post
+      parameters:
+      - name: productId
+        in: path
+        description: ID of the product to review.
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: integer
+      requestBody:
+        description: Review details
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewInput'
+        required: true
+      responses:
+        "201":
+          description: Review submitted successfully
+        "400":
+          description: Invalid request data
+        "401":
+          description: Unauthorized
+        "404":
+          description: Product not found
+        "500":
+          description: Internal server error
+      security:
+      - BearerAuth: []
+      x-openapi-router-controller: swagger_server.controllers.products_controller
+  /api/products/top-rated:
+    get:
+      tags:
+      - Products
+      summary: Retrieve top-rated products
+      description: Provides a list of products with the highest average ratings.
+      operationId: api_products_top_rated_get
+      parameters:
+      - name: limit
+        in: query
+        description: Limit the number of top-rated products returned (default is 10).
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: integer
+          default: 10
+      - name: minReviewsCount
+        in: query
+        description: Minimum number of reviews a product should have to be considered
+          in top-rated (optional filter).
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: integer
+      responses:
+        "200":
+          description: List of top-rated products successfully retrieved.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Product'
+                x-content-type: application/json
+        "500":
+          description: Internal server error
+      x-openapi-router-controller: swagger_server.controllers.products_controller
+  /api/products/{productId}/images:
+    get:
+      tags:
+      - Products
+      summary: Retrieve images for a specific product
+      description: Provides a list of image URLs or metadata associated with the given
+        product.
+      operationId: api_products_product_id_images_get
+      parameters:
+      - name: productId
+        in: path
+        description: ID of the product to retrieve images for.
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: integer
+      responses:
+        "200":
+          description: List of product images successfully retrieved.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProductImage'
+                x-content-type: application/json
+        "404":
+          description: Product not found
+        "500":
+          description: Internal server error
+      x-openapi-router-controller: swagger_server.controllers.products_controller
+    post:
+      tags:
+      - Products
+      summary: Upload a new image for a specific product
+      description: Allows administrators or authorized users to upload a new image
+        for the given product.
+      operationId: api_products_product_id_images_post
+      parameters:
+      - name: productId
+        in: path
+        description: ID of the product to upload an image for.
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: integer
+      requestBody:
+        description: Image to be uploaded
+        content:
+          image/*:
+            schema:
+              type: string
+              format: binary
+        required: true
+      responses:
+        "201":
+          description: Image uploaded successfully
+        "400":
+          description: Invalid request data
+        "401":
+          description: Unauthorized
+        "404":
+          description: Product not found
+        "500":
+          description: Internal server error
+      security:
+      - BearerAuth: []
+      x-openapi-router-controller: swagger_server.controllers.products_controller
+    delete:
+      tags:
+      - Products
+      summary: Delete a specific image for a product
+      description: Allows administrators or authorized users to delete an image associated
+        with the given product.
+      operationId: api_products_product_id_images_delete
+      parameters:
+      - name: productId
+        in: path
+        description: ID of the product to delete an image for.
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: integer
+      - name: imageId
+        in: query
+        description: ID or identifier of the image to be deleted.
+        required: true
+        style: form
+        explode: true
+        schema:
+          type: string
+      responses:
+        "204":
+          description: Image deleted successfully
+        "401":
+          description: Unauthorized
+        "404":
+          description: Product or image not found
+        "500":
+          description: Internal server error
+      security:
+      - BearerAuth: []
+      x-openapi-router-controller: swagger_server.controllers.products_controller
+  /api/products/recommendations:
+    get:
+      tags:
+      - Products
+      summary: Retrieve product recommendations for the user
+      description: "Provides a list of recommended products based on user behavior,\
+        \ popular products, or other algorithms."
+      operationId: api_products_recommendations_get
+      parameters:
+      - name: limit
+        in: query
+        description: Limit the number of recommended products returned (default is
+          10).
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: integer
+          default: 10
+      responses:
+        "200":
+          description: List of recommended products successfully retrieved.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Product'
+                x-content-type: application/json
+        "401":
+          description: Unauthorized
+        "500":
+          description: Internal server error
+      security:
+      - BearerAuth: []
+      x-openapi-router-controller: swagger_server.controllers.products_controller
+  /api/products/{productId}/related:
+    get:
+      tags:
+      - Products
+      summary: Retrieve products related to a specific product
+      description: Provides a list of products that are related to the given product.
+      operationId: api_products_product_id_related_get
+      parameters:
+      - name: productId
+        in: path
+        description: ID of the product to retrieve related products for.
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: integer
+      - name: limit
+        in: query
+        description: Limit the number of related products returned (default is 5).
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: integer
+          default: 5
+      responses:
+        "200":
+          description: List of related products successfully retrieved.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Product'
+                x-content-type: application/json
+        "404":
+          description: Product not found
+        "500":
+          description: Internal server error
+      x-openapi-router-controller: swagger_server.controllers.products_controller
+  /api/products/{productId}/inventory:
+    get:
+      tags:
+      - Products
+      summary: Retrieve inventory data for a specific product
+      description: Provides current stock levels and inventory status for the given
+        product.
+      operationId: api_products_product_id_inventory_get
+      parameters:
+      - name: productId
+        in: path
+        description: ID of the product to retrieve inventory data for.
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: integer
+      responses:
+        "200":
+          description: Inventory data successfully retrieved.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductInventory'
+        "404":
+          description: Product not found
+        "500":
+          description: Internal server error
+      x-openapi-router-controller: swagger_server.controllers.products_controller
+    put:
+      tags:
+      - Products
+      summary: Update inventory data for a specific product
+      description: Allows administrators or authorized users to update stock levels
+        and inventory status for the given product.
+      operationId: api_products_product_id_inventory_put
+      parameters:
+      - name: productId
+        in: path
+        description: ID of the product to update inventory data for.
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: integer
+      requestBody:
+        description: Updated inventory data
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductInventoryUpdate'
+        required: true
+      responses:
+        "200":
+          description: Inventory data updated successfully
+        "400":
+          description: Invalid request data
+        "401":
+          description: Unauthorized
+        "404":
+          description: Product not found
+        "500":
+          description: Internal server error
+      security:
+      - BearerAuth: []
+      x-openapi-router-controller: swagger_server.controllers.products_controller
+  /api/products/{productId}/price-history:
+    get:
+      tags:
+      - Products
+      summary: Retrieve price history for a specific product
+      description: Provides a chronological list of price changes for the given product.
+      operationId: api_products_product_id_price_history_get
+      parameters:
+      - name: productId
+        in: path
+        description: ID of the product to retrieve price history for.
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: integer
+      responses:
+        "200":
+          description: Price history data successfully retrieved.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProductPriceHistoryItem'
+                x-content-type: application/json
+        "404":
+          description: Product not found
+        "500":
+          description: Internal server error
+      x-openapi-router-controller: swagger_server.controllers.products_controller
+  /api/products/{productId}/promotions:
+    get:
+      tags:
+      - Products
+      summary: Retrieve promotions for a specific product
+      description: Provides a list of active and past promotions associated with the
+        given product.
+      operationId: api_products_product_id_promotions_get
+      parameters:
+      - name: productId
+        in: path
+        description: ID of the product to retrieve promotions for.
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: integer
+      responses:
+        "200":
+          description: Promotions data successfully retrieved.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProductPromotion'
+                x-content-type: application/json
+        "404":
+          description: Product not found
+        "500":
+          description: Internal server error
+      x-openapi-router-controller: swagger_server.controllers.products_controller
+  /api/products/batch-update:
+    put:
+      tags:
+      - Products
+      summary: Bulk update products
+      description: Allows for bulk updates to multiple products at once.
+      operationId: api_products_batch_update_put
+      requestBody:
+        description: A list of products with updated data.
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/ProductUpdate'
+        required: true
+      responses:
+        "200":
+          description: Products updated successfully.
+        "400":
+          description: Invalid request data.
+        "401":
+          description: Unauthorized.
+        "500":
+          description: Internal server error.
+      security:
+      - BearerAuth: []
+      x-openapi-router-controller: swagger_server.controllers.products_controller
+  /api/products/tags:
+    get:
+      tags:
+      - Products
+      summary: List all product tags
+      description: Provides a list of all tags associated with products.
+      operationId: api_products_tags_get
+      responses:
+        "200":
+          description: List of product tags successfully retrieved.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+                x-content-type: application/json
+        "500":
+          description: Internal server error
+      x-openapi-router-controller: swagger_server.controllers.products_controller
+    post:
+      tags:
+      - Products
+      summary: Add new product tags
+      description: Allows administrators or authorized users to add new tags for products.
+      operationId: api_products_tags_post
+      requestBody:
+        description: A list of tags to be added.
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: string
+        required: true
+      responses:
+        "201":
+          description: Tags added successfully.
+        "400":
+          description: Invalid request data.
+        "401":
+          description: Unauthorized.
+        "500":
+          description: Internal server error.
+      security:
+      - BearerAuth: []
+      x-openapi-router-controller: swagger_server.controllers.products_controller
+  /api/admin/users:
+    get:
+      tags:
+      - Admin
+      summary: List all users
+      description: Provides a list of all registered users on the platform.
+      operationId: api_admin_users_get
+      responses:
+        "200":
+          description: List of users successfully retrieved.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+                x-content-type: application/json
+        "401":
+          description: Unauthorized.
+        "500":
+          description: Internal server error.
+      security:
+      - BearerAuth: []
+      x-openapi-router-controller: swagger_server.controllers.admin_controller
+    put:
+      tags:
+      - Admin
+      summary: Bulk update users
+      description: Allows administrators to update multiple users at once.
+      operationId: api_admin_users_put
+      requestBody:
+        description: A list of users with updated data.
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/UserUpdate'
+        required: true
+      responses:
+        "200":
+          description: Users updated successfully.
+        "400":
+          description: Invalid request data.
+        "401":
+          description: Unauthorized.
+        "500":
+          description: Internal server error.
+      security:
+      - BearerAuth: []
+      x-openapi-router-controller: swagger_server.controllers.admin_controller
+    post:
+      tags:
+      - Admin
+      summary: Add a new user
+      description: Allows administrators to manually add a new user to the platform.
+      operationId: api_admin_users_post
+      requestBody:
+        description: User data for the new user.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRegistration'
+        required: true
+      responses:
+        "201":
+          description: User added successfully.
+        "400":
+          description: Invalid request data.
+        "401":
+          description: Unauthorized.
+        "500":
+          description: Internal server error.
+      security:
+      - BearerAuth: []
+      x-openapi-router-controller: swagger_server.controllers.admin_controller
+    delete:
+      tags:
+      - Admin
+      summary: Bulk delete users
+      description: Allows administrators to delete multiple users at once.
+      operationId: api_admin_users_delete
+      requestBody:
+        description: A list of user IDs to be deleted.
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: integer
+        required: true
+      responses:
+        "200":
+          description: Users deleted successfully.
+        "400":
+          description: Invalid request data.
+        "401":
+          description: Unauthorized.
+        "500":
+          description: Internal server error.
+      security:
+      - BearerAuth: []
+      x-openapi-router-controller: swagger_server.controllers.admin_controller
+  /api/admin/users/{userId}/roles:
+    get:
+      tags:
+      - Admin
+      summary: List roles for a specific user
+      description: Provides a list of roles assigned to the specified user.
+      operationId: api_admin_users_user_id_roles_get
+      parameters:
+      - name: userId
+        in: path
+        description: ID of the user to retrieve roles for.
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: integer
+      responses:
+        "200":
+          description: Roles data successfully retrieved.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+                x-content-type: application/json
+        "401":
+          description: Unauthorized.
+        "404":
+          description: User not found.
+        "500":
+          description: Internal server error.
+      security:
+      - BearerAuth: []
+      x-openapi-router-controller: swagger_server.controllers.admin_controller
+    put:
+      tags:
+      - Admin
+      summary: Assign or update roles for a specific user
+      description: Allows administrators to assign or modify roles for a given user.
+      operationId: api_admin_users_user_id_roles_put
+      parameters:
+      - name: userId
+        in: path
+        description: ID of the user to assign or update roles.
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: integer
+      requestBody:
+        description: List of roles to be assigned to the user.
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: string
+        required: true
+      responses:
+        "200":
+          description: Roles updated successfully.
+        "400":
+          description: Invalid request data.
+        "401":
+          description: Unauthorized.
+        "404":
+          description: User not found.
+        "500":
+          description: Internal server error.
+      security:
+      - BearerAuth: []
+      x-openapi-router-controller: swagger_server.controllers.admin_controller
+    delete:
+      tags:
+      - Admin
+      summary: Remove roles from a specific user
+      description: Allows administrators to remove specific roles from a user.
+      operationId: api_admin_users_user_id_roles_delete
+      parameters:
+      - name: userId
+        in: path
+        description: ID of the user to remove roles from.
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: integer
+      requestBody:
+        description: List of roles to be removed from the user.
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: string
+        required: true
+      responses:
+        "200":
+          description: Roles removed successfully.
+        "400":
+          description: Invalid request data.
+        "401":
+          description: Unauthorized.
+        "404":
+          description: User not found.
+        "500":
+          description: Internal server error.
+      security:
+      - BearerAuth: []
+      x-openapi-router-controller: swagger_server.controllers.admin_controller
+  /api/admin/users/{userId}/bans:
+    post:
+      tags:
+      - Admin
+      summary: Ban a specific user
+      description: "Allows administrators to ban a user, preventing them from accessing\
+        \ the platform or making transactions."
+      operationId: api_admin_users_user_id_bans_post
+      parameters:
+      - name: userId
+        in: path
+        description: ID of the user to ban.
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: integer
+      requestBody:
+        description: Details and reason for the ban.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/userId_bans_body'
+        required: true
+      responses:
+        "200":
+          description: User banned successfully.
+        "400":
+          description: Invalid request data.
+        "401":
+          description: Unauthorized.
+        "404":
+          description: User not found.
+        "500":
+          description: Internal server error.
+      security:
+      - BearerAuth: []
+      x-openapi-router-controller: swagger_server.controllers.admin_controller
+    delete:
+      tags:
+      - Admin
+      summary: Unban a specific user
+      description: "Allows administrators to lift a ban on a user, restoring their\
+        \ access to the platform."
+      operationId: api_admin_users_user_id_bans_delete
+      parameters:
+      - name: userId
+        in: path
+        description: ID of the user to unban.
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: integer
+      responses:
+        "200":
+          description: User unbanned successfully.
+        "401":
+          description: Unauthorized.
+        "404":
+          description: User not found or not banned.
+        "500":
+          description: Internal server error.
+      security:
+      - BearerAuth: []
+      x-openapi-router-controller: swagger_server.controllers.admin_controller
+  /api/admin/orders:
+    get:
+      tags:
+      - Admin
+      summary: List all orders
+      description: "Provides a list of all orders placed on the platform, with filters\
+        \ for date, status, etc."
+      operationId: api_admin_orders_get
+      parameters:
+      - name: status
+        in: query
+        description: "Filter orders by their status (e.g., \"pending\", \"shipped\"\
+          , \"completed\", \"returned\")."
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: string
+      - name: fromDate
+        in: query
+        description: Filter orders placed after this date.
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: string
+          format: date
+      - name: toDate
+        in: query
+        description: Filter orders placed before this date.
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: string
+          format: date
+      responses:
+        "200":
+          description: List of orders successfully retrieved.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Order'
+                x-content-type: application/json
+        "401":
+          description: Unauthorized.
+        "500":
+          description: Internal server error.
+      security:
+      - BearerAuth: []
+      x-openapi-router-controller: swagger_server.controllers.admin_controller
+    put:
+      tags:
+      - Admin
+      summary: Bulk update orders
+      description: "Allows administrators to update multiple orders at once, typically\
+        \ for changing order status."
+      operationId: api_admin_orders_put
+      requestBody:
+        description: List of orders with updated data.
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/OrderUpdate'
+        required: true
+      responses:
+        "200":
+          description: Orders updated successfully.
+        "400":
+          description: Invalid request data.
+        "401":
+          description: Unauthorized.
+        "500":
+          description: Internal server error.
+      security:
+      - BearerAuth: []
+      x-openapi-router-controller: swagger_server.controllers.admin_controller
+  /api/admin/inventory:
+    get:
+      tags:
+      - Admin
+      summary: List all inventory items
+      description: Provides a list of all products with their current inventory levels
+        and other related details.
+      operationId: api_admin_inventory_get
+      parameters:
+      - name: belowThreshold
+        in: query
+        description: Filter products that have inventory below a certain threshold.
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: integer
+      responses:
+        "200":
+          description: List of inventory items successfully retrieved.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/InventoryItem'
+                x-content-type: application/json
+        "401":
+          description: Unauthorized.
+        "500":
+          description: Internal server error.
+      security:
+      - BearerAuth: []
+      x-openapi-router-controller: swagger_server.controllers.admin_controller
+    put:
+      tags:
+      - Admin
+      summary: Bulk update inventory
+      description: Allows administrators to update inventory levels for multiple products
+        at once.
+      operationId: api_admin_inventory_put
+      requestBody:
+        description: List of inventory updates.
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/InventoryUpdate'
+        required: true
+      responses:
+        "200":
+          description: Inventory updated successfully.
+        "400":
+          description: Invalid request data.
+        "401":
+          description: Unauthorized.
+        "500":
+          description: Internal server error.
+      security:
+      - BearerAuth: []
+      x-openapi-router-controller: swagger_server.controllers.admin_controller
+  /api/admin/promotions:
+    get:
+      tags:
+      - Admin
+      summary: List all active promotions
+      description: Provides a list of all active promotions on the platform.
+      operationId: api_admin_promotions_get
+      responses:
+        "200":
+          description: List of promotions successfully retrieved.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Promotion'
+                x-content-type: application/json
+        "401":
+          description: Unauthorized.
+        "500":
+          description: Internal server error.
+      security:
+      - BearerAuth: []
+      x-openapi-router-controller: swagger_server.controllers.admin_controller
+    put:
+      tags:
+      - Admin
+      summary: Bulk update promotions
+      description: Allows administrators to update multiple promotions at once.
+      operationId: api_admin_promotions_put
+      requestBody:
+        description: List of promotions with updated data.
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/PromotionUpdate'
+        required: true
+      responses:
+        "200":
+          description: Promotions updated successfully.
+        "400":
+          description: Invalid request data.
+        "401":
+          description: Unauthorized.
+        "500":
+          description: Internal server error.
+      security:
+      - BearerAuth: []
+      x-openapi-router-controller: swagger_server.controllers.admin_controller
+    post:
+      tags:
+      - Admin
+      summary: Create a new promotion
+      description: Allows administrators to create a new promotion or discount.
+      operationId: api_admin_promotions_post
+      requestBody:
+        description: Details of the new promotion.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Promotion'
+        required: true
+      responses:
+        "201":
+          description: Promotion created successfully.
+        "400":
+          description: Invalid request data.
+        "401":
+          description: Unauthorized.
+        "500":
+          description: Internal server error.
+      security:
+      - BearerAuth: []
+      x-openapi-router-controller: swagger_server.controllers.admin_controller
+    delete:
+      tags:
+      - Admin
+      summary: Delete a promotion
+      description: Allows administrators to delete an existing promotion.
+      operationId: api_admin_promotions_delete
+      parameters:
+      - name: promotionId
+        in: query
+        description: ID of the promotion to delete.
+        required: true
+        style: form
+        explode: true
+        schema:
+          type: integer
+      responses:
+        "200":
+          description: Promotion deleted successfully.
+        "401":
+          description: Unauthorized.
+        "404":
+          description: Promotion not found.
+        "500":
+          description: Internal server error.
+      security:
+      - BearerAuth: []
+      x-openapi-router-controller: swagger_server.controllers.admin_controller
+  /api/admin/reports/sales:
+    get:
+      tags:
+      - Admin
+      summary: Generate and retrieve a sales report
+      description: "Provides an overview of sales, including total sales, revenue,\
+        \ top-selling products, and other related metrics."
+      operationId: api_admin_reports_sales_get
+      parameters:
+      - name: startDate
+        in: query
+        description: Start date for the report period.
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: string
+          format: date
+      - name: endDate
+        in: query
+        description: End date for the report period.
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: string
+          format: date
+      - name: granularity
+        in: query
+        description: "Level of detail or aggregation for the report, e.g., daily,\
+          \ weekly, monthly."
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: string
+          enum:
+          - daily
+          - weekly
+          - monthly
+          - yearly
+      responses:
+        "200":
+          description: Sales report successfully generated and retrieved.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SalesReport'
+        "401":
+          description: Unauthorized.
+        "500":
+          description: Internal server error.
+      security:
+      - BearerAuth: []
+      x-openapi-router-controller: swagger_server.controllers.admin_controller
+  /api/admin/reports/user-activity:
+    get:
+      tags:
+      - Admin
+      summary: Generate and retrieve a user activity report
+      description: "Provides insights into user behaviors, including login frequency,\
+        \ pages visited, time spent, and other metrics."
+      operationId: api_admin_reports_user_activity_get
+      parameters:
+      - name: startDate
+        in: query
+        description: Start date for the report period.
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: string
+          format: date
+      - name: endDate
+        in: query
+        description: End date for the report period.
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: string
+          format: date
+      - name: granularity
+        in: query
+        description: "Level of detail or aggregation for the report, e.g., daily,\
+          \ weekly, monthly."
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: string
+          enum:
+          - daily
+          - weekly
+          - monthly
+          - yearly
+      responses:
+        "200":
+          description: User activity report successfully generated and retrieved.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserActivityReport'
+        "401":
+          description: Unauthorized.
+        "500":
+          description: Internal server error.
+      security:
+      - BearerAuth: []
+      x-openapi-router-controller: swagger_server.controllers.admin_controller
+  /api/admin/reviews:
+    get:
+      tags:
+      - Admin
+      summary: Retrieve a list of product reviews
+      description: Lists all product reviews with filtering and pagination capabilities.
+      operationId: api_admin_reviews_get
+      parameters:
+      - name: productId
+        in: query
+        description: Filter reviews by specific product ID.
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: integer
+          format: int64
+      - name: userId
+        in: query
+        description: Filter reviews by specific user ID.
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: integer
+          format: int64
+      - name: status
+        in: query
+        description: "Filter reviews by status (e.g., approved, pending, rejected)."
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: string
+          enum:
+          - approved
+          - pending
+          - rejected
+      - name: page
+        in: query
+        description: Pagination - page number.
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: integer
+          format: int32
+      - name: limit
+        in: query
+        description: Pagination - number of reviews per page.
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: integer
+          format: int32
+      responses:
+        "200":
+          description: List of reviews successfully retrieved.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Review'
+                x-content-type: application/json
+        "401":
+          description: Unauthorized.
+        "500":
+          description: Internal server error.
+      security:
+      - BearerAuth: []
+      x-openapi-router-controller: swagger_server.controllers.admin_controller
+    put:
+      tags:
+      - Admin
+      summary: Update the status of a review
+      description: "Allows administrators to approve, reject, or update review status."
+      operationId: api_admin_reviews_put
+      requestBody:
+        description: Review update details
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReviewUpdate'
+        required: true
+      responses:
+        "200":
+          description: Review status updated successfully.
+        "400":
+          description: Invalid request data.
+        "401":
+          description: Unauthorized.
+        "404":
+          description: Review not found.
+        "500":
+          description: Internal server error.
+      security:
+      - BearerAuth: []
+      x-openapi-router-controller: swagger_server.controllers.admin_controller
+    delete:
+      tags:
+      - Admin
+      summary: Delete a specific review
+      description: Allows administrators to delete inappropriate or irrelevant reviews.
+      operationId: api_admin_reviews_delete
+      parameters:
+      - name: reviewId
+        in: path
+        description: ID of the review to be deleted.
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "204":
+          description: Review deleted successfully.
+        "401":
+          description: Unauthorized.
+        "404":
+          description: Review not found.
+        "500":
+          description: Internal server error.
+      security:
+      - BearerAuth: []
+      x-openapi-router-controller: swagger_server.controllers.admin_controller
+  /api/admin/feedback:
+    get:
+      tags:
+      - Admin
+      summary: Retrieve a list of user feedback
+      description: Lists all feedback submissions with filtering and pagination capabilities.
+      operationId: api_admin_feedback_get
+      parameters:
+      - name: status
+        in: query
+        description: "Filter feedback by status (e.g., reviewed, pending)."
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: string
+          enum:
+          - reviewed
+          - pending
+          - resolved
+      - name: type
+        in: query
+        description: "Filter feedback by type (e.g., bug, feature request, comment)."
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: string
+          enum:
+          - bug
+          - feature_request
+          - comment
+      - name: page
+        in: query
+        description: Pagination - page number.
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: integer
+          format: int32
+      - name: limit
+        in: query
+        description: Pagination - number of feedback items per page.
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: integer
+          format: int32
+      responses:
+        "200":
+          description: List of feedback successfully retrieved.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Feedback'
+                x-content-type: application/json
+        "401":
+          description: Unauthorized.
+        "500":
+          description: Internal server error.
+      security:
+      - BearerAuth: []
+      x-openapi-router-controller: swagger_server.controllers.admin_controller
+    put:
+      tags:
+      - Admin
+      summary: Update feedback details
+      description: Allows administrators to update feedback status or add comments.
+      operationId: api_admin_feedback_put
+      requestBody:
+        description: Feedback update details
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FeedbackUpdate'
+        required: true
+      responses:
+        "200":
+          description: Feedback updated successfully.
+        "400":
+          description: Invalid request data.
+        "401":
+          description: Unauthorized.
+        "404":
+          description: Feedback not found.
+        "500":
+          description: Internal server error.
+      security:
+      - BearerAuth: []
+      x-openapi-router-controller: swagger_server.controllers.admin_controller
+  /api/admin/settings:
+    get:
+      tags:
+      - Admin
+      summary: Retrieve platform settings
+      description: Fetches the current configuration and settings of the platform.
+      operationId: api_admin_settings_get
+      responses:
+        "200":
+          description: Current platform settings successfully retrieved.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlatformSettings'
+        "401":
+          description: Unauthorized.
+        "500":
+          description: Internal server error.
+      security:
+      - BearerAuth: []
+      x-openapi-router-controller: swagger_server.controllers.admin_controller
+    put:
+      tags:
+      - Admin
+      summary: Update platform settings
+      description: Allows administrators to modify and configure platform settings.
+      operationId: api_admin_settings_put
+      requestBody:
+        description: Updated platform settings data.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlatformSettingsUpdate'
+        required: true
+      responses:
+        "200":
+          description: Platform settings updated successfully.
+        "400":
+          description: Invalid request data.
+        "401":
+          description: Unauthorized.
+        "500":
+          description: Internal server error.
+      security:
+      - BearerAuth: []
+      x-openapi-router-controller: swagger_server.controllers.admin_controller
+  /api/admin/logs:
+    get:
+      tags:
+      - Admin
+      summary: Retrieve system logs
+      description: "Fetches logs based on filters like date range, log level, or specific\
+        \ events."
+      operationId: api_admin_logs_get
+      parameters:
+      - name: startDate
+        in: query
+        description: Starting date to filter logs.
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: string
+          format: date
+      - name: endDate
+        in: query
+        description: Ending date to filter logs.
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: string
+          format: date
+      - name: logLevel
+        in: query
+        description: "Level of log (e.g., INFO, ERROR, WARNING)."
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: string
+          enum:
+          - INFO
+          - ERROR
+          - WARNING
+          - DEBUG
+      - name: event
+        in: query
+        description: Specific event to filter logs.
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: List of logs successfully retrieved.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SystemLog'
+                x-content-type: application/json
+        "401":
+          description: Unauthorized.
+        "500":
+          description: Internal server error.
+      security:
+      - BearerAuth: []
+      x-openapi-router-controller: swagger_server.controllers.admin_controller
+  /api/admin/monitoring:
+    get:
+      tags:
+      - Admin
+      summary: Retrieve system monitoring data
+      description: Fetches monitoring metrics based on specified filters like time
+        range or specific metrics.
+      operationId: api_admin_monitoring_get
+      parameters:
+      - name: startTime
+        in: query
+        description: Starting timestamp to filter monitoring data.
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: string
+          format: date-time
+      - name: endTime
+        in: query
+        description: Ending timestamp to filter monitoring data.
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: string
+          format: date-time
+      - name: metric
+        in: query
+        description: "Specific metric to retrieve (e.g., \"CPU_Usage\", \"Response_Time\"\
+          )."
+        required: false
+        style: form
+        explode: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: Monitoring data successfully retrieved.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MonitoringMetric'
+                x-content-type: application/json
+        "401":
+          description: Unauthorized.
+        "500":
+          description: Internal server error.
+      security:
+      - BearerAuth: []
+      x-openapi-router-controller: swagger_server.controllers.admin_controller
+  /api/admin/content/pages:
+    get:
+      tags:
+      - Admin
+      summary: Retrieve a list of content pages
+      description: Fetches a list of all static content pages available on the platform.
+      operationId: api_admin_content_pages_get
+      responses:
+        "200":
+          description: List of content pages successfully retrieved.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ContentPage'
+                x-content-type: application/json
+        "401":
+          description: Unauthorized.
+        "500":
+          description: Internal server error.
+      security:
+      - BearerAuth: []
+      x-openapi-router-controller: swagger_server.controllers.admin_controller
+  /api/admin/content/banners:
+    get:
+      tags:
+      - Admin
+      summary: Retrieve a list of promotional banners
+      description: Fetches a list of all promotional banners currently on the platform.
+      operationId: api_admin_content_banners_get
+      responses:
+        "200":
+          description: List of promotional banners successfully retrieved.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Banner'
+                x-content-type: application/json
+        "401":
+          description: Unauthorized.
+        "500":
+          description: Internal server error.
+      security:
+      - BearerAuth: []
+      x-openapi-router-controller: swagger_server.controllers.admin_controller
+    post:
+      tags:
+      - Admin
+      summary: Create a new promotional banner
+      description: Allows administrators to add a new promotional banner.
+      operationId: api_admin_content_banners_post
+      requestBody:
+        description: Data for the new promotional banner.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BannerCreate'
+        required: true
+      responses:
+        "201":
+          description: Promotional banner created successfully.
+        "400":
+          description: Invalid request data.
+        "401":
+          description: Unauthorized.
+        "500":
+          description: Internal server error.
+      security:
+      - BearerAuth: []
+      x-openapi-router-controller: swagger_server.controllers.admin_controller
+  /api/admin/affiliates:
+    get:
+      tags:
+      - Admin
+      summary: Retrieve a list of affiliates
+      description: Fetches a list of all affiliates associated with the platform.
+      operationId: api_admin_affiliates_get
+      responses:
+        "200":
+          description: List of affiliates successfully retrieved.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Affiliate'
+                x-content-type: application/json
+        "401":
+          description: Unauthorized.
+        "500":
+          description: Internal server error.
+      security:
+      - BearerAuth: []
+      x-openapi-router-controller: swagger_server.controllers.admin_controller
+    post:
+      tags:
+      - Admin
+      summary: Add a new affiliate
+      description: Registers a new affiliate partner with the platform.
+      operationId: api_admin_affiliates_post
+      requestBody:
+        description: Data for the new affiliate.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AffiliateCreate'
+        required: true
+      responses:
+        "201":
+          description: Affiliate added successfully.
+        "400":
+          description: Invalid request data.
+        "401":
+          description: Unauthorized.
+        "500":
+          description: Internal server error.
+      security:
+      - BearerAuth: []
+      x-openapi-router-controller: swagger_server.controllers.admin_controller
+  /api/admin/partnerships:
+    get:
+      tags:
+      - Admin
+      summary: Retrieve a list of business partnerships
+      description: Fetches a list of all business partnerships associated with the
+        platform.
+      operationId: api_admin_partnerships_get
+      responses:
+        "200":
+          description: List of partnerships successfully retrieved.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Partnership'
+                x-content-type: application/json
+        "401":
+          description: Unauthorized.
+        "500":
+          description: Internal server error.
+      security:
+      - BearerAuth: []
+      x-openapi-router-controller: swagger_server.controllers.admin_controller
+    post:
+      tags:
+      - Admin
+      summary: Add a new business partnership
+      description: Registers a new business partnership or collaboration with the
+        platform.
+      operationId: api_admin_partnerships_post
+      requestBody:
+        description: Data for the new partnership.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PartnershipCreate'
+        required: true
+      responses:
+        "201":
+          description: Partnership added successfully.
+        "400":
+          description: Invalid request data.
+        "401":
+          description: Unauthorized.
+        "500":
+          description: Internal server error.
+      security:
+      - BearerAuth: []
+      x-openapi-router-controller: swagger_server.controllers.admin_controller
+components:
+  schemas:
+    UserRegistration:
+      type: object
+      properties:
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+    UserLogin:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+    UserProfile:
+      type: object
+      properties:
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+      example:
+        email: ""
+        username: username
+    Product:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+          format: float
+      example:
+        price: 0.8008282
+        name: name
+        description: description
+    Notification:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Unique identifier for the notification.
+          format: int64
+        title:
+          type: string
+          description: Title or header of the notification.
+        message:
+          type: string
+          description: Detailed message or content of the notification.
+        date:
+          type: string
+          description: Date and time when the notification was created.
+          format: date-time
+        status:
+          type: string
+          description: Current status of the notification.
+          enum:
+          - unread
+          - read
+      example:
+        date: 2000-01-23T04:56:07.000+00:00
+        id: 0
+        title: title
+        message: message
+        status: unread
+    Order:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Unique identifier for the order.
+          format: int64
+        orderDate:
+          type: string
+          description: Date and time when the order was placed.
+          format: date-time
+        status:
+          type: string
+          description: Current status of the order.
+          enum:
+          - pending
+          - processing
+          - shipped
+          - completed
+          - canceled
+        items:
+          type: array
+          description: List of products/items in the order.
+          items:
+            $ref: '#/components/schemas/OrderItem'
+        totalAmount:
+          type: number
+          description: Total amount of the order.
+          format: float
+        shippingAddress:
+          $ref: '#/components/schemas/Address'
+        paymentMethod:
+          type: string
+          description: "Payment method used for the order (e.g., \"Credit Card\",\
+            \ \"PayPal\")."
+        trackingNumber:
+          type: string
+          description: Tracking number for shipped orders.
+      example:
+        totalAmount: 2.302136
+        shippingAddress:
+          country: country
+          city: city
+          street: street
+          postalCode: postalCode
+          state: state
+        paymentMethod: paymentMethod
+        id: 0
+        orderDate: 2000-01-23T04:56:07.000+00:00
+        items:
+        - unitPrice: 5.962134
+          total: 5.637377
+          quantity: 1
+          productId: 6
+          productName: productName
+        - unitPrice: 5.962134
+          total: 5.637377
+          quantity: 1
+          productId: 6
+          productName: productName
+        trackingNumber: trackingNumber
+        status: pending
+    OrderItem:
+      type: object
+      properties:
+        productId:
+          type: integer
+          description: Unique identifier for the product.
+          format: int64
+        productName:
+          type: string
+          description: Name of the product.
+        quantity:
+          type: integer
+          description: Quantity of the product ordered.
+          format: int32
+        unitPrice:
+          type: number
+          description: Price of the product per unit.
+          format: float
+        total:
+          type: number
+          description: Total price for this item (unitPrice * quantity).
+          format: float
+      example:
+        unitPrice: 5.962134
+        total: 5.637377
+        quantity: 1
+        productId: 6
+        productName: productName
+    Address:
+      type: object
+      properties:
+        street:
+          type: string
+          description: Street address.
+        city:
+          type: string
+          description: City name.
+        state:
+          type: string
+          description: State or region.
+        postalCode:
+          type: string
+          description: Postal or ZIP code.
+        country:
+          type: string
+          description: Country name.
+      example:
+        country: country
+        city: city
+        street: street
+        postalCode: postalCode
+        state: state
+    Wishlist:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Unique identifier for the wishlist.
+          format: int64
+        name:
+          type: string
+          description: Name or title of the wishlist.
+        description:
+          type: string
+          description: A brief description or note for the wishlist.
+        items:
+          type: array
+          description: List of products/items in the wishlist.
+          items:
+            $ref: '#/components/schemas/ProductReference'
+      example:
+        name: name
+        description: description
+        id: 0
+        items:
+        - productId: 6
+          productName: productName
+        - productId: 6
+          productName: productName
+    ProductReference:
+      type: object
+      properties:
+        productId:
+          type: integer
+          description: Unique identifier for the product.
+          format: int64
+        productName:
+          type: string
+          description: Name of the product.
+      example:
+        productId: 6
+        productName: productName
+    Review:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Unique identifier for the review.
+          format: int64
+        productId:
+          type: integer
+          description: Unique identifier for the reviewed product.
+          format: int64
+        title:
+          type: string
+          description: Title or header of the review.
+        content:
+          type: string
+          description: Detailed content of the review.
+        rating:
+          maximum: 5
+          minimum: 1
+          type: integer
+          description: "Rating given to the product, usually from 1 to 5."
+          format: int32
+        date:
+          type: string
+          description: Date and time when the review was submitted.
+          format: date-time
+      example:
+        date: 2000-01-23T04:56:07.000+00:00
+        productId: 6
+        rating: 1
+        id: 0
+        title: title
+        content: content
+    ReviewInput:
+      type: object
+      properties:
+        productId:
+          type: integer
+          description: Unique identifier for the reviewed product.
+          format: int64
+        title:
+          type: string
+          description: Title or header of the review.
+        content:
+          type: string
+          description: Detailed content of the review.
+        rating:
+          maximum: 5
+          minimum: 1
+          type: integer
+          description: "Rating given to the product, usually from 1 to 5."
+          format: int32
+    Category:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Unique identifier for the category.
+          format: int64
+        name:
+          type: string
+          description: Name of the category.
+        description:
+          type: string
+          description: A brief description of the category.
+        parentCategoryId:
+          type: integer
+          description: Identifier for the parent category (if it's a sub-category).
+          format: int64
+      example:
+        name: name
+        description: description
+        parentCategoryId: 6
+        id: 0
+    CategoryInput:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Name of the category.
+        description:
+          type: string
+          description: A brief description of the category.
+        parentCategoryId:
+          type: integer
+          description: Identifier for the parent category (if it's a sub-category).
+          format: int64
+    ProductImage:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the image.
+        url:
+          type: string
+          description: URL where the image can be accessed.
+          format: uri
+        altText:
+          type: string
+          description: "Alternative text for the image, useful for accessibility."
+        uploadedAt:
+          type: string
+          description: Date and time when the image was uploaded.
+          format: date-time
+      example:
+        altText: altText
+        uploadedAt: 2000-01-23T04:56:07.000+00:00
+        id: id
+        url: http://example.com/aeiou
+    ProductInventory:
+      type: object
+      properties:
+        stockLevel:
+          type: integer
+          description: Current number of items in stock.
+        status:
+          type: string
+          description: Current inventory status.
+          enum:
+          - in_stock
+          - low_stock
+          - out_of_stock
+        lastUpdated:
+          type: string
+          description: Date and time when the inventory was last updated.
+          format: date-time
+      example:
+        lastUpdated: 2000-01-23T04:56:07.000+00:00
+        stockLevel: 0
+        status: in_stock
+    ProductInventoryUpdate:
+      type: object
+      properties:
+        stockLevel:
+          type: integer
+          description: Updated number of items in stock.
+        status:
+          type: string
+          description: Updated inventory status.
+          enum:
+          - in_stock
+          - low_stock
+          - out_of_stock
+    ProductPriceHistoryItem:
+      type: object
+      properties:
+        price:
+          type: number
+          description: The price of the product at a specific point in time.
+          format: float
+        effectiveDate:
+          type: string
+          description: Date and time when this price became effective.
+          format: date-time
+        reason:
+          type: string
+          description: "Optional field denoting the reason for the price change (e.g.,\
+            \ seasonal sale, supplier price change)."
+      example:
+        reason: reason
+        price: 0.8008282
+        effectiveDate: 2000-01-23T04:56:07.000+00:00
+    ProductPromotion:
+      type: object
+      properties:
+        promotionId:
+          type: string
+          description: Unique identifier for the promotion.
+        name:
+          type: string
+          description: Name or title of the promotion.
+        description:
+          type: string
+          description: Detailed description of the promotion.
+        discountType:
+          type: string
+          description: Type of discount (percentage off or a fixed amount off).
+          enum:
+          - percentage
+          - fixed_amount
+        discountValue:
+          type: number
+          description: "Value of the discount, based on the discountType."
+          format: float
+        startDate:
+          type: string
+          description: Date and time when the promotion began.
+          format: date-time
+        endDate:
+          type: string
+          description: Date and time when the promotion ended or is set to end.
+          format: date-time
+        isActive:
+          type: boolean
+          description: Flag indicating if the promotion is currently active.
+      example:
+        endDate: 2000-01-23T04:56:07.000+00:00
+        name: name
+        description: description
+        discountType: percentage
+        isActive: true
+        discountValue: 0.8008282
+        promotionId: promotionId
+        startDate: 2000-01-23T04:56:07.000+00:00
+    ProductUpdate:
+      type: object
+      properties:
+        productId:
+          type: integer
+          description: ID of the product to be updated.
+        name:
+          type: string
+          description: Updated product name (if changed).
+        price:
+          type: number
+          description: Updated price (if changed).
+          format: float
+        inventory:
+          type: integer
+          description: Updated inventory count (if changed).
+        description:
+          type: string
+          description: Updated product description (if changed).
+    User:
+      required:
+      - email
+      - firstName
+      - lastName
+      - userId
+      - username
+      type: object
+      properties:
+        userId:
+          type: integer
+          description: Unique identifier for the user.
+          format: int64
+        username:
+          type: string
+          description: Unique username used for login.
+        email:
+          type: string
+          description: Email address of the user.
+          format: email
+        firstName:
+          type: string
+          description: First name of the user.
+        lastName:
+          type: string
+          description: Last name of the user.
+        dateRegistered:
+          type: string
+          description: Date and time when the user registered.
+          format: date-time
+        lastLogin:
+          type: string
+          description: Date and time of the user's last successful login.
+          format: date-time
+        role:
+          type: string
+          description: Role or roles assigned to the user. This could be an array
+            if users can have multiple roles.
+        isActive:
+          type: boolean
+          description: Flag indicating if the user's account is active.
+          default: true
+        avatarUrl:
+          type: string
+          description: URL to the user's avatar or profile picture (if any).
+          format: uri
+        address:
+          type: string
+          description: Physical address of the user (if provided).
+        phone:
+          type: string
+          description: Contact phone number for the user.
+      example:
+        firstName: firstName
+        lastName: lastName
+        lastLogin: 2000-01-23T04:56:07.000+00:00
+        role: role
+        address: address
+        avatarUrl: http://example.com/aeiou
+        phone: phone
+        isActive: true
+        userId: 0
+        email: ""
+        dateRegistered: 2000-01-23T04:56:07.000+00:00
+        username: username
+    UserUpdate:
+      minProperties: 1
+      type: object
+      properties:
+        username:
+          type: string
+          description: Updated username. It should remain unique.
+        email:
+          type: string
+          description: Updated email address.
+          format: email
+        firstName:
+          type: string
+          description: Updated first name.
+        lastName:
+          type: string
+          description: Updated last name.
+        role:
+          type: string
+          description: Updated role or roles. This could be an array if users can
+            have multiple roles.
+        isActive:
+          type: boolean
+          description: Flag indicating if the user's account should be set to active
+            or inactive.
+        avatarUrl:
+          type: string
+          description: Updated URL to the user's avatar or profile picture.
+          format: uri
+        address:
+          type: string
+          description: Updated physical address of the user.
+        phone:
+          type: string
+          description: Updated contact phone number.
+      additionalProperties: false
+    InventoryUpdate:
+      required:
+      - currentStock
+      - productId
+      type: object
+      properties:
+        productId:
+          type: integer
+          description: Unique identifier for the product.
+          format: int64
+        currentStock:
+          type: integer
+          description: The updated stock level for the product.
+        restockDate:
+          type: string
+          description: Optional date and time when the product was restocked.
+          format: date-time
+        threshold:
+          type: integer
+          description: "Updated restock threshold. When the stock drops below this\
+            \ value, a restock might be necessary."
+        notes:
+          type: string
+          description: Any additional notes or comments about the inventory update.
+    OrderUpdate:
+      required:
+      - status
+      type: object
+      properties:
+        status:
+          type: string
+          description: The updated status of the order.
+          enum:
+          - pending
+          - processed
+          - shipped
+          - completed
+          - canceled
+          - returned
+        trackingNumber:
+          type: string
+          description: "If the order is shipped, this field can be updated with the\
+            \ tracking number for the shipment."
+        estimatedDeliveryDate:
+          type: string
+          description: An updated estimated delivery date for the order.
+          format: date-time
+        notes:
+          type: string
+          description: Any additional administrative notes or comments about the order.
+        cancelReason:
+          type: string
+          description: "If the order is canceled, a reason can be provided here."
+        returnReason:
+          type: string
+          description: "If the order is returned, a reason can be provided here."
+    InventoryItem:
+      required:
+      - currentStock
+      - productId
+      - productName
+      type: object
+      properties:
+        productId:
+          type: integer
+          description: Unique identifier for the product.
+          format: int64
+        productName:
+          type: string
+          description: Name of the product.
+        currentStock:
+          type: integer
+          description: The current stock level for the product.
+        restockThreshold:
+          type: integer
+          description: "The threshold at which a restock alert is triggered. When\
+            \ the current stock drops below this value, a restock might be necessary."
+        lastRestockDate:
+          type: string
+          description: The date and time when the product was last restocked.
+          format: date-time
+        nextRestockDate:
+          type: string
+          description: "Estimated date and time for the next restocking, if applicable."
+          format: date-time
+        supplier:
+          type: string
+          description: The supplier or manufacturer of the product.
+        notes:
+          type: string
+          description: Any additional notes or comments about the inventory item.
+      example:
+        notes: notes
+        productId: 0
+        nextRestockDate: 2000-01-23T04:56:07.000+00:00
+        lastRestockDate: 2000-01-23T04:56:07.000+00:00
+        supplier: supplier
+        currentStock: 6
+        restockThreshold: 1
+        productName: productName
+    PromotionUpdate:
+      minProperties: 1
+      type: object
+      properties:
+        promotionId:
+          type: integer
+          description: Unique identifier for the promotion. This is typically used
+            for reference and not for update purposes.
+          format: int64
+        name:
+          type: string
+          description: Updated name or title of the promotion.
+        type:
+          type: string
+          description: "Type of promotion, e.g., percentage discount, flat discount,\
+            \ etc."
+          enum:
+          - percentage
+          - flat_discount
+          - buy_one_get_one
+          - other
+        value:
+          type: number
+          description: "The value associated with the promotion. For example, if it's\
+            \ a percentage discount, this might be \"10\" for 10%."
+        startDate:
+          type: string
+          description: Updated start date and time for when the promotion becomes
+            active.
+          format: date-time
+        endDate:
+          type: string
+          description: Updated end date and time for when the promotion expires.
+          format: date-time
+        applicableProducts:
+          type: array
+          description: "List of product IDs to which the promotion is applicable.\
+            \ If empty, it might be applicable to all products or specific categories."
+          items:
+            type: integer
+            format: int64
+        notes:
+          type: string
+          description: Any additional notes or updates about the promotion.
+      additionalProperties: false
+    Promotion:
+      required:
+      - endDate
+      - name
+      - promotionId
+      - startDate
+      - type
+      - value
+      type: object
+      properties:
+        promotionId:
+          type: integer
+          description: Unique identifier for the promotion.
+          format: int64
+        name:
+          type: string
+          description: Name or title of the promotion.
+        type:
+          type: string
+          description: "Type of promotion, e.g., percentage discount, flat discount,\
+            \ etc."
+          enum:
+          - percentage
+          - flat_discount
+          - buy_one_get_one
+          - other
+        value:
+          type: number
+          description: "The value associated with the promotion. For example, if it's\
+            \ a percentage discount, this might be \"10\" for 10%."
+        startDate:
+          type: string
+          description: Start date and time for when the promotion becomes active.
+          format: date-time
+        endDate:
+          type: string
+          description: End date and time for when the promotion expires.
+          format: date-time
+        applicableProducts:
+          type: array
+          description: "List of product IDs to which the promotion is applicable.\
+            \ If empty, it might be applicable to all products or specific categories."
+          items:
+            type: integer
+            format: int64
+        notes:
+          type: string
+          description: Any additional notes or details about the promotion.
+        createdDate:
+          type: string
+          description: The date and time when the promotion was created.
+          format: date-time
+        modifiedDate:
+          type: string
+          description: The last date and time when the promotion was updated.
+          format: date-time
+      example:
+        notes: notes
+        createdDate: 2000-01-23T04:56:07.000+00:00
+        endDate: 2000-01-23T04:56:07.000+00:00
+        name: name
+        modifiedDate: 2000-01-23T04:56:07.000+00:00
+        applicableProducts:
+        - 1
+        - 1
+        type: percentage
+        value: 6.027456183070403
+        promotionId: 0
+        startDate: 2000-01-23T04:56:07.000+00:00
+    SalesReport:
+      required:
+      - averageOrderValue
+      - endDate
+      - startDate
+      - totalRevenue
+      - totalSales
+      type: object
+      properties:
+        startDate:
+          type: string
+          description: The start date for the report period.
+          format: date
+        endDate:
+          type: string
+          description: The end date for the report period.
+          format: date
+        totalSales:
+          type: integer
+          description: Total number of sales/orders during the report period.
+        totalRevenue:
+          type: number
+          description: Total revenue generated during the report period.
+          format: float
+        averageOrderValue:
+          type: number
+          description: The average value of orders during the report period.
+          format: float
+        topSellingProducts:
+          type: array
+          items:
+            $ref: '#/components/schemas/SalesReport_topSellingProducts'
+        leastSellingProducts:
+          type: array
+          items:
+            $ref: '#/components/schemas/SalesReport_topSellingProducts'
+        dailyBreakdown:
+          type: array
+          items:
+            $ref: '#/components/schemas/SalesReport_dailyBreakdown'
+      example:
+        endDate: 2000-01-23
+        topSellingProducts:
+        - productId: 5
+          quantitySold: 5
+          productName: productName
+        - productId: 5
+          quantitySold: 5
+          productName: productName
+        averageOrderValue: 1.4658129
+        dailyBreakdown:
+        - date: 2000-01-23
+          revenue: 7.0614014
+          sales: 2
+        - date: 2000-01-23
+          revenue: 7.0614014
+          sales: 2
+        totalSales: 0
+        totalRevenue: 6.0274563
+        startDate: 2000-01-23
+        leastSellingProducts:
+        - null
+        - null
+    UserActivityReport:
+      required:
+      - activeUsers
+      - averageSessionDuration
+      - endDate
+      - startDate
+      - totalUsers
+      type: object
+      properties:
+        startDate:
+          type: string
+          description: The start date for the report period.
+          format: date
+        endDate:
+          type: string
+          description: The end date for the report period.
+          format: date
+        totalUsers:
+          type: integer
+          description: Total number of registered users on the platform.
+        activeUsers:
+          type: integer
+          description: Number of users who were active during the report period.
+        averageSessionDuration:
+          type: number
+          description: Average time (in minutes) a user spends on the platform per
+            session.
+          format: float
+        topVisitedPages:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserActivityReport_topVisitedPages'
+        dailyLogins:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserActivityReport_dailyLogins'
+      example:
+        totalUsers: 0
+        endDate: 2000-01-23
+        topVisitedPages:
+        - visitCount: 5
+          pageName: pageName
+        - visitCount: 5
+          pageName: pageName
+        averageSessionDuration: 1.4658129
+        activeUsers: 6
+        dailyLogins:
+        - date: 2000-01-23
+          loginCount: 5
+        - date: 2000-01-23
+          loginCount: 5
+        startDate: 2000-01-23
+    ReviewUpdate:
+      required:
+      - reviewId
+      - status
+      type: object
+      properties:
+        reviewId:
+          type: integer
+          description: Unique identifier for the review being updated.
+          format: int64
+        status:
+          type: string
+          description: The new status for the review.
+          enum:
+          - approved
+          - pending
+          - rejected
+        adminComment:
+          type: string
+          description: "Optional comment by the administrator regarding the update\
+            \ (e.g., reason for rejection)."
+        updatedContent:
+          type: string
+          description: "Updated content of the review, if any changes are made to\
+            \ the original review text."
+    Feedback:
+      required:
+      - description
+      - feedbackId
+      - status
+      - submissionDate
+      - title
+      - type
+      - userId
+      type: object
+      properties:
+        feedbackId:
+          type: integer
+          description: Unique identifier for the feedback entry.
+          format: int64
+        userId:
+          type: integer
+          description: Unique identifier for the user who submitted the feedback.
+          format: int64
+        username:
+          type: string
+          description: Username of the user who submitted the feedback.
+        submissionDate:
+          type: string
+          description: The timestamp when the feedback was submitted.
+          format: date-time
+        type:
+          type: string
+          description: The category or type of feedback.
+          enum:
+          - bug
+          - feature_request
+          - comment
+        title:
+          type: string
+          description: Brief title or headline for the feedback.
+        description:
+          type: string
+          description: Detailed description of the feedback.
+        status:
+          type: string
+          description: The current status of the feedback.
+          enum:
+          - pending
+          - reviewed
+          - resolved
+        adminComment:
+          type: string
+          description: Optional comment from the administrator in response to the
+            feedback.
+      example:
+        feedbackId: 0
+        description: description
+        submissionDate: 2000-01-23T04:56:07.000+00:00
+        adminComment: adminComment
+        type: bug
+        title: title
+        userId: 6
+        username: username
+        status: pending
+    FeedbackUpdate:
+      required:
+      - feedbackId
+      - status
+      type: object
+      properties:
+        feedbackId:
+          type: integer
+          description: Unique identifier for the feedback entry being updated.
+          format: int64
+        status:
+          type: string
+          description: Updated status for the feedback.
+          enum:
+          - pending
+          - reviewed
+          - resolved
+        adminComment:
+          type: string
+          description: "Comment or response from the administrator in relation to\
+            \ the feedback. This could be a resolution comment, feedback, or any other\
+            \ relevant note."
+    PlatformSettingsUpdate:
+      required:
+      - siteDescription
+      - siteTitle
+      type: object
+      properties:
+        siteTitle:
+          type: string
+          description: The title of the e-commerce site.
+        siteDescription:
+          type: string
+          description: A brief description or tagline for the platform.
+        maintenanceMode:
+          type: boolean
+          description: "Flag to indicate if the site is in maintenance mode. True\
+            \ means the site is in maintenance mode, false means it's live."
+        defaultCurrency:
+          type: string
+          description: The default currency for product pricing and transactions.
+        paymentMethods:
+          type: array
+          items:
+            type: string
+            description: "Supported payment methods (e.g., \"PayPal\", \"Credit Card\"\
+              , \"Bitcoin\")."
+        shippingConfig:
+          $ref: '#/components/schemas/PlatformSettingsUpdate_shippingConfig'
+        otherSettings:
+          type: object
+          additionalProperties: true
+          description: Any other miscellaneous settings that don't fit into the above
+            categories.
+    PlatformSettings:
+      required:
+      - siteDescription
+      - siteTitle
+      type: object
+      properties:
+        siteTitle:
+          type: string
+          description: The title of the e-commerce site.
+        siteDescription:
+          type: string
+          description: A brief description or tagline for the platform.
+        maintenanceMode:
+          type: boolean
+          description: Indicates if the site is in maintenance mode.
+        defaultCurrency:
+          type: string
+          description: The default currency for product pricing and transactions.
+        paymentMethods:
+          type: array
+          items:
+            type: string
+            description: Supported payment methods.
+        shippingConfig:
+          $ref: '#/components/schemas/PlatformSettings_shippingConfig'
+        otherSettings:
+          type: object
+          additionalProperties: true
+          description: Miscellaneous settings specific to the platform.
+      example:
+        shippingConfig:
+          rates:
+          - price: 0.8008282
+            region: region
+          - price: 0.8008282
+            region: region
+          defaultProvider: defaultProvider
+        otherSettings: ""
+        defaultCurrency: defaultCurrency
+        siteTitle: siteTitle
+        paymentMethods:
+        - paymentMethods
+        - paymentMethods
+        siteDescription: siteDescription
+        maintenanceMode: true
+    SystemLog:
+      required:
+      - event
+      - logId
+      - logLevel
+      - message
+      - timestamp
+      type: object
+      properties:
+        logId:
+          type: integer
+          description: Unique identifier for the log entry.
+          format: int64
+        timestamp:
+          type: string
+          description: The exact time when the event occurred.
+          format: date-time
+        logLevel:
+          type: string
+          description: The severity or level of the log.
+          enum:
+          - INFO
+          - ERROR
+          - WARNING
+          - DEBUG
+        event:
+          type: string
+          description: A brief description or identifier for the event or operation
+            that triggered the log.
+        message:
+          type: string
+          description: Detailed description of the event or any additional information.
+        metadata:
+          type: object
+          additionalProperties: true
+          description: "Any other relevant metadata associated with the log, such\
+            \ as request details, user information, or system state."
+      example:
+        metadata: ""
+        logLevel: INFO
+        logId: 0
+        event: event
+        message: message
+        timestamp: 2000-01-23T04:56:07.000+00:00
+    MonitoringMetric:
+      required:
+      - metricId
+      - metricName
+      - timestamp
+      - unit
+      - value
+      type: object
+      properties:
+        metricId:
+          type: integer
+          description: Unique identifier for the metric entry.
+          format: int64
+        metricName:
+          type: string
+          description: "Name of the monitoring metric (e.g., \"CPU_Usage\", \"Response_Time\"\
+            , \"Memory_Usage\")."
+        timestamp:
+          type: string
+          description: The exact time when the metric was measured.
+          format: date-time
+        value:
+          type: number
+          description: "The value of the monitoring metric, often a percentage, time\
+            \ in milliseconds, or other unit relevant to the metric."
+          format: float
+        unit:
+          type: string
+          description: "The unit of the metric value (e.g., \"%\", \"ms\", \"MB\"\
+            )."
+        metadata:
+          type: object
+          additionalProperties: true
+          description: "Any other relevant metadata associated with the metric, such\
+            \ as resource details or related system information."
+      example:
+        unit: unit
+        metadata: ""
+        metricName: metricName
+        metricId: 0
+        value: 6.0274563
+        timestamp: 2000-01-23T04:56:07.000+00:00
+    ContentPage:
+      required:
+      - content
+      - lastModified
+      - pageId
+      - slug
+      - title
+      type: object
+      properties:
+        pageId:
+          type: integer
+          description: Unique identifier for the content page.
+          format: int64
+        title:
+          type: string
+          description: The title or heading of the content page.
+        slug:
+          type: string
+          description: "URL-friendly version of the title used for routing (e.g.,\
+            \ \"about-us\", \"privacy-policy\")."
+        content:
+          type: string
+          description: "The main content of the page, typically in HTML or Markdown\
+            \ format."
+        lastModified:
+          type: string
+          description: Timestamp indicating the last time the page was updated.
+          format: date-time
+        author:
+          type: string
+          description: The name or identifier of the person who last edited the page.
+        metaTags:
+          type: array
+          description: SEO-related meta tags associated with the page.
+          items:
+            type: string
+        isPublished:
+          type: boolean
+          description: Indicates whether the page is live and accessible to users
+            or in a draft state.
+      example:
+        author: author
+        isPublished: true
+        metaTags:
+        - metaTags
+        - metaTags
+        lastModified: 2000-01-23T04:56:07.000+00:00
+        pageId: 0
+        title: title
+        slug: slug
+        content: content
+    Banner:
+      required:
+      - bannerId
+      - endDate
+      - imageUrl
+      - linkUrl
+      - startDate
+      - title
+      type: object
+      properties:
+        bannerId:
+          type: integer
+          description: Unique identifier for the promotional banner.
+          format: int64
+        title:
+          type: string
+          description: A short title or headline for the banner.
+        imageUrl:
+          type: string
+          description: URL of the banner image.
+        linkUrl:
+          type: string
+          description: URL to which the banner redirects when clicked.
+        displayDuration:
+          type: integer
+          description: Duration (in seconds) for which the banner should be displayed
+            to the user.
+          format: int32
+        startDate:
+          type: string
+          description: Date and time when the banner starts being displayed.
+          format: date-time
+        endDate:
+          type: string
+          description: Date and time when the banner stops being displayed.
+          format: date-time
+        position:
+          type: string
+          description: The position on the webpage where the banner should be displayed.
+          enum:
+          - TOP
+          - MIDDLE
+          - BOTTOM
+        isActive:
+          type: boolean
+          description: Indicates whether the banner is currently active and being
+            displayed to users.
+      example:
+        displayDuration: 6
+        bannerId: 0
+        endDate: 2000-01-23T04:56:07.000+00:00
+        imageUrl: imageUrl
+        linkUrl: linkUrl
+        position: TOP
+        title: title
+        isActive: true
+        startDate: 2000-01-23T04:56:07.000+00:00
+    BannerCreate:
+      required:
+      - endDate
+      - imageUrl
+      - linkUrl
+      - startDate
+      - title
+      type: object
+      properties:
+        title:
+          type: string
+          description: A short title or headline for the banner.
+        imageUrl:
+          type: string
+          description: URL of the banner image.
+        linkUrl:
+          type: string
+          description: URL to which the banner redirects when clicked.
+        displayDuration:
+          type: integer
+          description: Duration (in seconds) for which the banner should be displayed
+            to the user.
+          format: int32
+        startDate:
+          type: string
+          description: Date and time when the banner starts being displayed.
+          format: date-time
+        endDate:
+          type: string
+          description: Date and time when the banner stops being displayed.
+          format: date-time
+        position:
+          type: string
+          description: The position on the webpage where the banner should be displayed.
+          enum:
+          - TOP
+          - MIDDLE
+          - BOTTOM
+        isActive:
+          type: boolean
+          description: Indicates whether the banner should start as active and be
+            displayed to users.
+    Affiliate:
+      required:
+      - affiliateId
+      - contactEmail
+      - name
+      - referralCode
+      - registrationDate
+      type: object
+      properties:
+        affiliateId:
+          type: integer
+          description: Unique identifier for the affiliate.
+          format: int64
+        name:
+          type: string
+          description: Full name or company name of the affiliate.
+        contactEmail:
+          type: string
+          description: Contact email address for the affiliate.
+          format: email
+        referralCode:
+          type: string
+          description: Unique code used by the affiliate for referrals.
+        registrationDate:
+          type: string
+          description: Date and time when the affiliate was onboarded.
+          format: date-time
+        totalReferrals:
+          type: integer
+          description: Total number of referrals made by the affiliate.
+          format: int32
+        successfulReferrals:
+          type: integer
+          description: Number of successful referrals that resulted in sales or signups.
+          format: int32
+        commissionEarned:
+          type: number
+          description: Total commission earned by the affiliate based on successful
+            referrals.
+          format: float
+        isActive:
+          type: boolean
+          description: Indicates whether the affiliate is currently active.
+      example:
+        contactEmail: ""
+        commissionEarned: 5.962134
+        totalReferrals: 6
+        successfulReferrals: 1
+        referralCode: referralCode
+        name: name
+        registrationDate: 2000-01-23T04:56:07.000+00:00
+        isActive: true
+        affiliateId: 0
+    AffiliateCreate:
+      required:
+      - contactEmail
+      - name
+      type: object
+      properties:
+        name:
+          type: string
+          description: Full name or company name of the affiliate.
+        contactEmail:
+          type: string
+          description: Contact email address for the affiliate.
+          format: email
+        referralCode:
+          type: string
+          description: "Unique code to be used by the affiliate for referrals. If\
+            \ not provided, the system could generate one."
+        registrationDate:
+          type: string
+          description: "Date and time when the affiliate is onboarded. If not provided,\
+            \ the system could use the current date-time."
+          format: date-time
+        isActive:
+          type: boolean
+          description: Indicates whether the affiliate should start as active. Defaults
+            to true if not provided.
+          default: true
+    Partnership:
+      required:
+      - contactEmail
+      - partnerName
+      - partnershipId
+      - partnershipType
+      type: object
+      properties:
+        partnershipId:
+          type: integer
+          description: Unique identifier for the partnership.
+          format: int64
+        partnerName:
+          type: string
+          description: Name of the partner organization or business.
+        contactPerson:
+          type: string
+          description: Name of the primary contact person at the partner organization.
+        contactEmail:
+          type: string
+          description: Email address for communication with the partner.
+          format: email
+        partnershipType:
+          type: string
+          description: Type or nature of the partnership.
+          enum:
+          - Collaboration
+          - Integration
+          - Sponsorship
+          - Other
+        startDate:
+          type: string
+          description: Date and time when the partnership agreement started.
+          format: date-time
+        endDate:
+          type: string
+          description: Date and time when the partnership agreement is set to end.
+          format: date-time
+        terms:
+          type: string
+          description: Detailed terms and conditions of the partnership.
+        benefits:
+          type: string
+          description: "Benefits accrued from the partnership, for both parties."
+        isActive:
+          type: boolean
+          description: Indicates whether the partnership is currently active.
+      example:
+        benefits: benefits
+        partnershipId: 0
+        partnerName: partnerName
+        contactEmail: ""
+        endDate: 2000-01-23T04:56:07.000+00:00
+        terms: terms
+        contactPerson: contactPerson
+        partnershipType: Collaboration
+        isActive: true
+        startDate: 2000-01-23T04:56:07.000+00:00
+    PartnershipCreate:
+      required:
+      - contactEmail
+      - partnerName
+      - partnershipType
+      - startDate
+      type: object
+      properties:
+        partnerName:
+          type: string
+          description: Name of the partner organization or business.
+        contactPerson:
+          type: string
+          description: Name of the primary contact person at the partner organization.
+        contactEmail:
+          type: string
+          description: Email address for communication with the partner.
+          format: email
+        partnershipType:
+          type: string
+          description: Type or nature of the partnership.
+          enum:
+          - Collaboration
+          - Integration
+          - Sponsorship
+          - Other
+        startDate:
+          type: string
+          description: Date and time when the partnership agreement starts.
+          format: date-time
+        endDate:
+          type: string
+          description: Date and time when the partnership agreement is set to end.
+            Can be optional if the end date is not determined.
+          format: date-time
+        terms:
+          type: string
+          description: Detailed terms and conditions of the partnership.
+        benefits:
+          type: string
+          description: "Benefits accrued from the partnership, for both parties."
+        isActive:
+          type: boolean
+          description: Indicates whether the partnership should start as active. Defaults
+            to true if not provided.
+          default: true
+    api_authorize_body:
+      required:
+      - password
+      - username
+      type: object
+      properties:
+        username:
+          type: string
+          description: User's unique username.
+        password:
+          type: string
+          description: User's password.
+          format: password
+    inline_response_200:
+      type: object
+      properties:
+        token:
+          type: string
+          description: JWT token for authentication.
+      example:
+        token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+    profile_password_body:
+      required:
+      - currentPassword
+      - newPassword
+      type: object
+      properties:
+        currentPassword:
+          type: string
+          description: The user's current password
+        newPassword:
+          type: string
+          description: The new password the user wants to set
+        confirmPassword:
+          type: string
+          description: Confirmation of the new password
+    users_forgotpassword_body:
+      required:
+      - email
+      type: object
+      properties:
+        email:
+          type: string
+          description: The user's registered email address
+          format: email
+    users_resetpassword_body:
+      required:
+      - confirmPassword
+      - newPassword
+      - resetToken
+      type: object
+      properties:
+        resetToken:
+          type: string
+          description: The reset token or code received in the email
+        newPassword:
+          type: string
+          description: The new password the user wants to set
+        confirmPassword:
+          type: string
+          description: Confirmation of the new password
+    users_notifications_body:
+      type: object
+      properties:
+        action:
+          type: string
+          description: Action to mark all notifications or selected ones as read.
+          enum:
+          - all
+          - selected
+        notificationIds:
+          type: array
+          description: List of notification IDs to mark as read (required if action
+            is 'selected').
+          items:
+            type: integer
+    admin_notifications_body:
+      required:
+      - message
+      - title
+      - userId
+      type: object
+      properties:
+        userId:
+          type: integer
+          description: Unique identifier of the target user.
+          format: int64
+        title:
+          type: string
+          description: Title or header of the notification.
+        message:
+          type: string
+          description: Detailed message or content of the notification.
+        type:
+          type: string
+          description: "Type or category of the notification (e.g., \"order update\"\
+            , \"promotion\")."
+    userId_bans_body:
+      type: object
+      properties:
+        reason:
+          type: string
+          description: Reason for banning the user.
+        duration:
+          type: string
+          description: "Optional end date/time for the ban. If not provided, the ban\
+            \ is indefinite."
+          format: date-time
+    SalesReport_topSellingProducts:
+      type: object
+      properties:
+        productId:
+          type: integer
+          description: Unique identifier for the product.
+          format: int64
+        productName:
+          type: string
+          description: Name of the product.
+        quantitySold:
+          type: integer
+          description: Total quantity of this product sold during the report period.
+      example:
+        productId: 5
+        quantitySold: 5
+        productName: productName
+    SalesReport_dailyBreakdown:
+      type: object
+      properties:
+        date:
+          type: string
+          description: Specific date in the report period.
+          format: date
+        sales:
+          type: integer
+          description: Number of sales on that date.
+        revenue:
+          type: number
+          description: Revenue generated on that date.
+          format: float
+      example:
+        date: 2000-01-23
+        revenue: 7.0614014
+        sales: 2
+    UserActivityReport_topVisitedPages:
+      type: object
+      properties:
+        pageName:
+          type: string
+          description: Name or identifier of the page.
+        visitCount:
+          type: integer
+          description: Number of visits to this page during the report period.
+      example:
+        visitCount: 5
+        pageName: pageName
+    UserActivityReport_dailyLogins:
+      type: object
+      properties:
+        date:
+          type: string
+          description: Specific date in the report period.
+          format: date
+        loginCount:
+          type: integer
+          description: Number of user logins on that date.
+      example:
+        date: 2000-01-23
+        loginCount: 5
+    PlatformSettingsUpdate_shippingConfig_rates:
+      type: object
+      properties:
+        region:
+          type: string
+          description: Shipping region or zone.
+        price:
+          type: number
+          description: Shipping rate for the specified region.
+          format: float
+      example:
+        price: 0.8008282
+        region: region
+    PlatformSettingsUpdate_shippingConfig:
+      type: object
+      properties:
+        defaultProvider:
+          type: string
+          description: "Default shipping provider (e.g., \"FedEx\", \"UPS\")."
+        rates:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlatformSettingsUpdate_shippingConfig_rates'
+    PlatformSettings_shippingConfig:
+      type: object
+      properties:
+        defaultProvider:
+          type: string
+          description: Default shipping provider.
+        rates:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlatformSettingsUpdate_shippingConfig_rates'
+      example:
+        rates:
+        - price: 0.8008282
+          region: region
+        - price: 0.8008282
+          region: region
+        defaultProvider: defaultProvider
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      x-bearerInfoFunc: swagger_server.controllers.authorization_controller.check_BearerAuth
+

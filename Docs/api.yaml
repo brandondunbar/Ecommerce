@@ -1,0 +1,5098 @@
+
+"openapi": "3.0.0"
+"info":
+  "title": "E-commerce API"
+  "description": "API for E-commerce Platform"
+  "version": "1.0.0"
+  "contact":
+    "name": "Brandon Dunbar"
+    "email": "brandon.dunbar97@gmail.com"
+  "license":
+    "name": "AGPL 3.0"
+    "url": "https://www.gnu.org/licenses/agpl-3.0.en.html"
+"servers":
+  -
+    "url": "http://localhost:8080"
+    "description": "Local development server"
+"security":
+  -
+    "BearerAuth": []
+"paths":
+  "/api/authorize":
+    "post":
+      "operationId": "AuthenticateUser"
+      "summary": "Authenticate a user and return a JWT token"
+      "tags":
+        - "Authentication"
+      "description": "Authenticate with a username and password to receive a JWT token. \nThis token should be included in the Authorization header for subsequent requests to protected endpoints.\n"
+      "requestBody":
+        "required": true
+        "content":
+          "application/json":
+            "schema":
+              "type": "object"
+              "required":
+                - "username"
+                - "password"
+              "properties":
+                "username":
+                  "type": "string"
+                  "description": "User's unique username."
+                "password":
+                  "type": "string"
+                  "description": "User's password."
+                  "format": "password"
+            "example":
+              "username": "john_doe"
+              "password": "securepassword123"
+      "responses":
+        "200":
+          "description": "Authentication successful"
+          "content":
+            "application/json":
+              "schema":
+                "type": "object"
+                "properties":
+                  "token":
+                    "type": "string"
+                    "description": "JWT token for authentication."
+                "example":
+                  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        "401":
+          "description": "Authentication failed"
+        "400":
+          "description": "Bad request (e.g., missing required fields)"
+  "/api/users/register":
+    "post":
+      "summary": "Register a new user"
+      "description": "Register a new user with the provided details. Once registered, the user can authenticate using the /api/authorize endpoint. <br>Note - Passwords must be at least 8 characters long, contain at least 1 number and 1 special character."
+      "tags":
+        - "Users"
+      "requestBody":
+        "description": "User data needed for registration"
+        "required": true
+        "content":
+          "application/json":
+            "schema":
+              "type": "object"
+              "properties":
+                "username":
+                  "type": "string"
+                "email":
+                  "type": "string"
+                  "format": "email"
+                "password":
+                  "type": "string"
+                  "format": "password"
+      "responses":
+        "201":
+          "description": "User registered successfully"
+          "content":
+            "application/json":
+              "schema":
+                "type": "object"
+                "properties":
+                  "username":
+                    "type": "string"
+                  "email":
+                    "type": "string"
+                    "format": "email"
+          "links":
+            "AuthenticateUser":
+              "description": "After registering, you can authenticate to receive a JWT token."
+              "operationId": "AuthenticateUser"
+        "400":
+          "description": "Invalid request data"
+        "401":
+          "description": "Unauthorized"
+        "409":
+          "description": "Username or email already exists"
+        "500":
+          "description": "Internal server error"
+  "/api/users/login":
+    "post":
+      "summary": "Authenticate a user"
+      "description": "Authenticate a user using their username (or email) and password. \nIf successful, a JWT token will be returned for subsequent authenticated requests. \nNote: There's a rate limit of 5 requests per minute to prevent brute force attacks.\n"
+      "tags":
+        - "Users"
+      "requestBody":
+        "description": "User login credentials"
+        "required": true
+        "content":
+          "application/json":
+            "schema":
+              "type": "object"
+              "properties":
+                "email":
+                  "type": "string"
+                  "format": "email"
+                "password":
+                  "type": "string"
+                  "format": "password"
+      "responses":
+        "200":
+          "description": "Authentication successful and JWT token returned."
+          "content":
+            "application/json":
+              "schema":
+                "type": "object"
+                "properties":
+                  "token":
+                    "type": "string"
+                    "description": "JWT token for authentication."
+                "example":
+                  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        "400":
+          "description": "Bad request (e.g., missing required fields)"
+        "401":
+          "description": "Authentication failed"
+        "403":
+          "description": "Account locked or suspended"
+        "500":
+          "description": "Internal server error"
+  "/api/users/profile":
+    "get":
+      "summary": "Retrieve the authenticated user's profile"
+      "description": "Returns the profile details of the currently authenticated user."
+      "tags":
+        - "Users"
+      "security":
+        -
+          "BearerAuth": []
+      "responses":
+        "200":
+          "description": "User profile data successfully retrieved."
+          "content":
+            "application/json":
+              "schema":
+                "type": "object"
+                "properties":
+                  "username":
+                    "type": "string"
+                  "email":
+                    "type": "string"
+                    "format": "email"
+        "401":
+          "description": "Unauthorized"
+        "403":
+          "description": "Forbidden"
+        "404":
+          "description": "User profile not found"
+        "500":
+          "description": "Internal server error"
+    "put":
+      "summary": "Update the authenticated user's profile"
+      "description": "Updates the profile details of the currently authenticated user based on the provided data."
+      "tags":
+        - "Users"
+      "security":
+        -
+          "BearerAuth": []
+      "requestBody":
+        "description": "Updated user profile data"
+        "required": true
+        "content":
+          "application/json":
+            "schema":
+              "type": "object"
+              "properties":
+                "username":
+                  "type": "string"
+                "email":
+                  "type": "string"
+                  "format": "email"
+      "responses":
+        "200":
+          "description": "Profile updated successfully"
+          "content":
+            "application/json":
+              "schema":
+                "type": "object"
+                "properties":
+                  "username":
+                    "type": "string"
+                  "email":
+                    "type": "string"
+                    "format": "email"
+        "400":
+          "description": "Invalid request data"
+        "401":
+          "description": "Unauthorized"
+        "403":
+          "description": "Forbidden"
+        "404":
+          "description": "User profile not found"
+        "500":
+          "description": "Internal server error"
+    "delete":
+      "summary": "Delete user's account"
+      "description": "Allows the authenticated user to permanently delete their account. This action should be used with caution as it might be irreversible."
+      "tags":
+        - "Users"
+      "security":
+        -
+          "BearerAuth": []
+      "responses":
+        "200":
+          "description": "User account deleted successfully"
+        "401":
+          "description": "Unauthorized"
+        "403":
+          "description": "Forbidden (e.g., if there are certain restrictions preventing the user from deleting their account)"
+        "500":
+          "description": "Internal server error"
+  "/api/users/orders":
+    "get":
+      "summary": "Retrieve user's order history"
+      "description": "Allows the authenticated user to view a list of their past orders."
+      "tags":
+        - "Users"
+      "security":
+        -
+          "BearerAuth": []
+      "parameters":
+        -
+          "in": "query"
+          "name": "page"
+          "schema":
+            "type": "integer"
+          "description": "Page number for pagination."
+        -
+          "in": "query"
+          "name": "limit"
+          "schema":
+            "type": "integer"
+          "description": "Number of orders per page for pagination."
+        -
+          "in": "query"
+          "name": "status"
+          "schema":
+            "type": "string"
+          "description": "Filter orders by status (e.g., \"completed\", \"pending\", \"canceled\")."
+      "responses":
+        "200":
+          "description": "List of orders successfully retrieved."
+          "content":
+            "application/json":
+              "schema":
+                "type": "array"
+                "items":
+                  "type": "object"
+                  "properties":
+                    "id":
+                      "type": "integer"
+                      "format": "int64"
+                      "description": "Unique identifier for the order."
+                    "orderDate":
+                      "type": "string"
+                      "format": "date-time"
+                      "description": "Date and time when the order was placed."
+                    "status":
+                      "type": "string"
+                      "enum":
+                        - "pending"
+                        - "processing"
+                        - "shipped"
+                        - "completed"
+                        - "canceled"
+                      "description": "Current status of the order."
+                    "items":
+                      "type": "array"
+                      "items":
+                        "type": "object"
+                        "properties":
+                          "productId":
+                            "type": "integer"
+                            "format": "int64"
+                            "description": "Unique identifier for the product."
+                          "productName":
+                            "type": "string"
+                            "description": "Name of the product."
+                          "quantity":
+                            "type": "integer"
+                            "format": "int32"
+                            "description": "Quantity of the product ordered."
+                          "unitPrice":
+                            "type": "number"
+                            "format": "float"
+                            "description": "Price of the product per unit."
+                          "total":
+                            "type": "number"
+                            "format": "float"
+                            "description": "Total price for this item (unitPrice * quantity)."
+                      "description": "List of products/items in the order."
+                    "totalAmount":
+                      "type": "number"
+                      "format": "float"
+                      "description": "Total amount of the order."
+                    "shippingAddress":
+                      "type": "object"
+                      "properties":
+                        "street":
+                          "type": "string"
+                          "description": "Street address."
+                        "city":
+                          "type": "string"
+                          "description": "City name."
+                        "state":
+                          "type": "string"
+                          "description": "State or region."
+                        "postalCode":
+                          "type": "string"
+                          "description": "Postal or ZIP code."
+                        "country":
+                          "type": "string"
+                          "description": "Country name."
+                    "paymentMethod":
+                      "type": "string"
+                      "description": "Payment method used for the order (e.g., \"Credit Card\", \"PayPal\")."
+                    "trackingNumber":
+                      "type": "string"
+                      "description": "Tracking number for shipped orders."
+        "401":
+          "description": "Unauthorized"
+        "500":
+          "description": "Internal server error"
+  "/api/users/profile/password":
+    "put":
+      "summary": "Change the user's password"
+      "description": "Allows the authenticated user to change their password."
+      "tags":
+        - "Users"
+      "security":
+        -
+          "BearerAuth": []
+      "requestBody":
+        "description": "Current and new password details"
+        "required": true
+        "content":
+          "application/json":
+            "schema":
+              "type": "object"
+              "required":
+                - "currentPassword"
+                - "newPassword"
+              "properties":
+                "currentPassword":
+                  "type": "string"
+                  "description": "The user's current password"
+                "newPassword":
+                  "type": "string"
+                  "description": "The new password the user wants to set"
+                "confirmPassword":
+                  "type": "string"
+                  "description": "Confirmation of the new password"
+      "responses":
+        "200":
+          "description": "Password changed successfully"
+        "400":
+          "description": "Invalid request data (e.g., newPassword and confirmPassword don't match)"
+        "401":
+          "description": "Unauthorized (e.g., currentPassword is incorrect)"
+        "403":
+          "description": "Forbidden (e.g., user might be locked out after multiple failed attempts)"
+        "500":
+          "description": "Internal server error"
+  "/api/users/forgot-password":
+    "post":
+      "summary": "Request password reset"
+      "description": "Allows a user to request a password reset link or code, which will be sent to their registered email."
+      "tags":
+        - "Users"
+      "requestBody":
+        "description": "Email address associated with the user's account"
+        "required": true
+        "content":
+          "application/json":
+            "schema":
+              "type": "object"
+              "required":
+                - "email"
+              "properties":
+                "email":
+                  "type": "string"
+                  "format": "email"
+                  "description": "The user's registered email address"
+      "responses":
+        "200":
+          "description": "Password reset request received. Check your email for further instructions."
+        "400":
+          "description": "Invalid request data (e.g., email format incorrect)"
+        "404":
+          "description": "User not found with the provided email"
+        "500":
+          "description": "Internal server error"
+  "/api/users/reset-password":
+    "post":
+      "summary": "Reset user password"
+      "description": "Allows a user to reset their password using a valid reset token or code received in their email."
+      "tags":
+        - "Users"
+      "requestBody":
+        "description": "Password reset token and new password details"
+        "required": true
+        "content":
+          "application/json":
+            "schema":
+              "type": "object"
+              "required":
+                - "resetToken"
+                - "newPassword"
+                - "confirmPassword"
+              "properties":
+                "resetToken":
+                  "type": "string"
+                  "description": "The reset token or code received in the email"
+                "newPassword":
+                  "type": "string"
+                  "description": "The new password the user wants to set"
+                "confirmPassword":
+                  "type": "string"
+                  "description": "Confirmation of the new password"
+      "responses":
+        "200":
+          "description": "Password reset successfully"
+        "400":
+          "description": "Invalid request data (e.g., newPassword and confirmPassword don't match or invalid resetToken format)"
+        "401":
+          "description": "Invalid or expired reset token"
+        "500":
+          "description": "Internal server error"
+  "/api/users/wishlists":
+    "get":
+      "summary": "Retrieve user's wishlists"
+      "description": "Allows the authenticated user to view a list of their wishlists."
+      "tags":
+        - "Users"
+      "security":
+        -
+          "BearerAuth": []
+      "responses":
+        "200":
+          "description": "List of wishlists successfully retrieved."
+          "content":
+            "application/json":
+              "schema":
+                "type": "array"
+                "items":
+                  "type": "object"
+                  "properties":
+                    "id":
+                      "type": "integer"
+                      "format": "int64"
+                      "description": "Unique identifier for the wishlist."
+                    "name":
+                      "type": "string"
+                      "description": "Name or title of the wishlist."
+                    "description":
+                      "type": "string"
+                      "description": "A brief description or note for the wishlist."
+                    "items":
+                      "type": "array"
+                      "items":
+                        "type": "object"
+                        "properties":
+                          "productId":
+                            "type": "integer"
+                            "format": "int64"
+                            "description": "Unique identifier for the product."
+                          "productName":
+                            "type": "string"
+                            "description": "Name of the product."
+                      "description": "List of products/items in the wishlist."
+        "401":
+          "description": "Unauthorized"
+        "500":
+          "description": "Internal server error"
+    "post":
+      "summary": "Create a new wishlist"
+      "description": "Allows the authenticated user to create a new wishlist."
+      "tags":
+        - "Users"
+      "security":
+        -
+          "BearerAuth": []
+      "requestBody":
+        "description": "Wishlist details"
+        "required": true
+        "content":
+          "application/json":
+            "schema":
+              "type": "object"
+              "properties":
+                "id":
+                  "type": "integer"
+                  "format": "int64"
+                  "description": "Unique identifier for the wishlist."
+                "name":
+                  "type": "string"
+                  "description": "Name or title of the wishlist."
+                "description":
+                  "type": "string"
+                  "description": "A brief description or note for the wishlist."
+                "items":
+                  "type": "array"
+                  "items":
+                    "type": "object"
+                    "properties":
+                      "productId":
+                        "type": "integer"
+                        "format": "int64"
+                        "description": "Unique identifier for the product."
+                      "productName":
+                        "type": "string"
+                        "description": "Name of the product."
+                  "description": "List of products/items in the wishlist."
+      "responses":
+        "201":
+          "description": "Wishlist created successfully"
+        "400":
+          "description": "Invalid request data"
+        "401":
+          "description": "Unauthorized"
+        "500":
+          "description": "Internal server error"
+  "/api/users/notifications":
+    "get":
+      "summary": "Retrieve user's notifications"
+      "description": "Allows the authenticated user to view a list of their notifications."
+      "tags":
+        - "Users"
+      "security":
+        -
+          "BearerAuth": []
+      "parameters":
+        -
+          "in": "query"
+          "name": "status"
+          "schema":
+            "type": "string"
+            "enum":
+              - "unread"
+              - "read"
+              - "all"
+          "description": "Filter notifications by status."
+      "responses":
+        "200":
+          "description": "List of notifications successfully retrieved."
+          "content":
+            "application/json":
+              "schema":
+                "type": "array"
+                "items":
+                  "type": "object"
+                  "properties":
+                    "id":
+                      "type": "integer"
+                      "format": "int64"
+                      "description": "Unique identifier for the notification."
+                    "title":
+                      "type": "string"
+                      "description": "Title or header of the notification."
+                    "message":
+                      "type": "string"
+                      "description": "Detailed message or content of the notification."
+                    "date":
+                      "type": "string"
+                      "format": "date-time"
+                      "description": "Date and time when the notification was created."
+                    "status":
+                      "type": "string"
+                      "enum":
+                        - "unread"
+                        - "read"
+                      "description": "Current status of the notification."
+        "401":
+          "description": "Unauthorized"
+        "500":
+          "description": "Internal server error"
+    "put":
+      "summary": "Mark notifications as read"
+      "description": "Allows the authenticated user to mark specific notifications or all notifications as read."
+      "tags":
+        - "Users"
+      "security":
+        -
+          "BearerAuth": []
+      "requestBody":
+        "description": "IDs of notifications to mark as read or a command to mark all as read."
+        "required": true
+        "content":
+          "application/json":
+            "schema":
+              "type": "object"
+              "properties":
+                "action":
+                  "type": "string"
+                  "enum":
+                    - "all"
+                    - "selected"
+                  "description": "Action to mark all notifications or selected ones as read."
+                "notificationIds":
+                  "type": "array"
+                  "items":
+                    "type": "integer"
+                  "description": "List of notification IDs to mark as read (required if action is 'selected')."
+      "responses":
+        "200":
+          "description": "Notifications marked as read successfully"
+        "400":
+          "description": "Invalid request data"
+        "401":
+          "description": "Unauthorized"
+        "500":
+          "description": "Internal server error"
+  "/api/users/reviews":
+    "get":
+      "summary": "Retrieve user's product reviews"
+      "description": "Allows the authenticated user to view a list of their product reviews."
+      "tags":
+        - "Users"
+      "security":
+        -
+          "BearerAuth": []
+      "responses":
+        "200":
+          "description": "List of reviews successfully retrieved."
+          "content":
+            "application/json":
+              "schema":
+                "type": "array"
+                "items":
+                  "type": "object"
+                  "properties":
+                    "id":
+                      "type": "integer"
+                      "format": "int64"
+                      "description": "Unique identifier for the review."
+                    "productId":
+                      "type": "integer"
+                      "format": "int64"
+                      "description": "Unique identifier for the reviewed product."
+                    "title":
+                      "type": "string"
+                      "description": "Title or header of the review."
+                    "content":
+                      "type": "string"
+                      "description": "Detailed content of the review."
+                    "rating":
+                      "type": "integer"
+                      "format": "int32"
+                      "minimum": 1
+                      "maximum": 5
+                      "description": "Rating given to the product, usually from 1 to 5."
+                    "date":
+                      "type": "string"
+                      "format": "date-time"
+                      "description": "Date and time when the review was submitted."
+        "401":
+          "description": "Unauthorized"
+        "500":
+          "description": "Internal server error"
+    "post":
+      "summary": "Create a new product review"
+      "description": "Allows the authenticated user to submit a review for a product."
+      "tags":
+        - "Users"
+      "security":
+        -
+          "BearerAuth": []
+      "requestBody":
+        "description": "Review details"
+        "required": true
+        "content":
+          "application/json":
+            "schema":
+              "type": "object"
+              "properties":
+                "productId":
+                  "type": "integer"
+                  "format": "int64"
+                  "description": "Unique identifier for the reviewed product."
+                "title":
+                  "type": "string"
+                  "description": "Title or header of the review."
+                "content":
+                  "type": "string"
+                  "description": "Detailed content of the review."
+                "rating":
+                  "type": "integer"
+                  "format": "int32"
+                  "minimum": 1
+                  "maximum": 5
+                  "description": "Rating given to the product, usually from 1 to 5."
+      "responses":
+        "201":
+          "description": "Review submitted successfully"
+        "400":
+          "description": "Invalid request data"
+        "401":
+          "description": "Unauthorized"
+        "500":
+          "description": "Internal server error"
+  "/api/admin/notifications":
+    "post":
+      "summary": "Send a notification to a user"
+      "description": "Allows authorized entities (e.g., administrators or automated systems) to send a notification to a specific user."
+      "tags":
+        - "Admin"
+      "security":
+        -
+          "BearerAuth": []
+      "requestBody":
+        "description": "Notification details and target user"
+        "required": true
+        "content":
+          "application/json":
+            "schema":
+              "type": "object"
+              "required":
+                - "userId"
+                - "title"
+                - "message"
+              "properties":
+                "userId":
+                  "type": "integer"
+                  "format": "int64"
+                  "description": "Unique identifier of the target user."
+                "title":
+                  "type": "string"
+                  "description": "Title or header of the notification."
+                "message":
+                  "type": "string"
+                  "description": "Detailed message or content of the notification."
+                "type":
+                  "type": "string"
+                  "description": "Type or category of the notification (e.g., \"order update\", \"promotion\")."
+      "responses":
+        "201":
+          "description": "Notification sent successfully"
+        "400":
+          "description": "Invalid request data"
+        "401":
+          "description": "Unauthorized"
+        "500":
+          "description": "Internal server error"
+  "/api/products":
+    "get":
+      "summary": "List all products"
+      "description": "Returns a list of all products. Supports pagination, filtering, and sorting."
+      "tags":
+        - "Products"
+      "parameters":
+        -
+          "in": "query"
+          "name": "page"
+          "schema":
+            "type": "integer"
+          "description": "Page number for pagination."
+        -
+          "in": "query"
+          "name": "limit"
+          "schema":
+            "type": "integer"
+          "description": "Number of products per page for pagination."
+        -
+          "in": "query"
+          "name": "sort"
+          "schema":
+            "type": "string"
+          "description": "Sorting criteria (e.g., \"price_asc\", \"name_desc\")."
+      "responses":
+        "200":
+          "description": "List of products successfully retrieved."
+          "content":
+            "application/json":
+              "schema":
+                "type": "array"
+                "items":
+                  "type": "object"
+                  "properties":
+                    "name":
+                      "type": "string"
+                    "description":
+                      "type": "string"
+                    "price":
+                      "type": "number"
+                      "format": "float"
+        "500":
+          "description": "Internal server error"
+    "post":
+      "summary": "Add a new product"
+      "description": "Creates a new product based on the provided data and returns the details of the newly added product."
+      "tags":
+        - "Products"
+      "security":
+        -
+          "BearerAuth": []
+      "requestBody":
+        "description": "Product data"
+        "required": true
+        "content":
+          "application/json":
+            "schema":
+              "type": "object"
+              "properties":
+                "name":
+                  "type": "string"
+                "description":
+                  "type": "string"
+                "price":
+                  "type": "number"
+                  "format": "float"
+      "responses":
+        "201":
+          "description": "Product created successfully"
+          "content":
+            "application/json":
+              "schema":
+                "type": "object"
+                "properties":
+                  "name":
+                    "type": "string"
+                  "description":
+                    "type": "string"
+                  "price":
+                    "type": "number"
+                    "format": "float"
+        "400":
+          "description": "Invalid request data"
+        "401":
+          "description": "Unauthorized"
+        "403":
+          "description": "Forbidden"
+        "500":
+          "description": "Internal server error"
+  "/api/products/{productId}":
+    "get":
+      "summary": "Retrieve details of a specific product"
+      "description": "Returns the detailed information of a product identified by the provided product ID."
+      "tags":
+        - "Products"
+      "parameters":
+        -
+          "name": "productId"
+          "in": "path"
+          "required": true
+          "description": "ID of the product to retrieve"
+          "schema":
+            "type": "integer"
+      "responses":
+        "200":
+          "description": "Product details successfully retrieved"
+          "content":
+            "application/json":
+              "schema":
+                "type": "object"
+                "properties":
+                  "name":
+                    "type": "string"
+                  "description":
+                    "type": "string"
+                  "price":
+                    "type": "number"
+                    "format": "float"
+        "400":
+          "description": "Invalid product ID format"
+        "401":
+          "description": "Unauthorized"
+        "404":
+          "description": "Product not found"
+        "500":
+          "description": "Internal server error"
+  "/api/products/categories":
+    "get":
+      "summary": "Retrieve all product categories"
+      "description": "Provides a list of all product categories available."
+      "tags":
+        - "Products"
+      "responses":
+        "200":
+          "description": "List of product categories successfully retrieved."
+          "content":
+            "application/json":
+              "schema":
+                "type": "array"
+                "items":
+                  "type": "object"
+                  "properties":
+                    "id":
+                      "type": "integer"
+                      "format": "int64"
+                      "description": "Unique identifier for the category."
+                    "name":
+                      "type": "string"
+                      "description": "Name of the category."
+                    "description":
+                      "type": "string"
+                      "description": "A brief description of the category."
+                    "parentCategoryId":
+                      "type": "integer"
+                      "format": "int64"
+                      "description": "Identifier for the parent category (if it's a sub-category)."
+        "500":
+          "description": "Internal server error"
+    "post":
+      "summary": "Create a new product category"
+      "description": "Allows administrators to add a new product category."
+      "tags":
+        - "Products"
+      "security":
+        -
+          "BearerAuth": []
+      "requestBody":
+        "description": "Category details"
+        "required": true
+        "content":
+          "application/json":
+            "schema":
+              "type": "object"
+              "properties":
+                "name":
+                  "type": "string"
+                  "description": "Name of the category."
+                "description":
+                  "type": "string"
+                  "description": "A brief description of the category."
+                "parentCategoryId":
+                  "type": "integer"
+                  "format": "int64"
+                  "description": "Identifier for the parent category (if it's a sub-category)."
+      "responses":
+        "201":
+          "description": "Product category created successfully"
+        "400":
+          "description": "Invalid request data"
+        "401":
+          "description": "Unauthorized"
+        "500":
+          "description": "Internal server error"
+  "/api/products/search":
+    "get":
+      "summary": "Search for products"
+      "description": "Allows users to search for products based on keywords, categories, price range, and other criteria."
+      "tags":
+        - "Products"
+      "parameters":
+        -
+          "in": "query"
+          "name": "keyword"
+          "schema":
+            "type": "string"
+          "description": "Search term or keyword."
+        -
+          "in": "query"
+          "name": "categoryId"
+          "schema":
+            "type": "integer"
+          "description": "ID of the product category to filter by."
+        -
+          "in": "query"
+          "name": "minPrice"
+          "schema":
+            "type": "number"
+            "format": "float"
+          "description": "Minimum price for filtering."
+        -
+          "in": "query"
+          "name": "maxPrice"
+          "schema":
+            "type": "number"
+            "format": "float"
+          "description": "Maximum price for filtering."
+        -
+          "in": "query"
+          "name": "sortBy"
+          "schema":
+            "type": "string"
+            "enum":
+              - "date"
+              - "price"
+              - "rating"
+          "description": "Sort the results by date, price, or rating."
+        -
+          "in": "query"
+          "name": "sortOrder"
+          "schema":
+            "type": "string"
+            "enum":
+              - "asc"
+              - "desc"
+          "description": "Order of sorting (ascending or descending)."
+      "responses":
+        "200":
+          "description": "Search results successfully retrieved."
+          "content":
+            "application/json":
+              "schema":
+                "type": "array"
+                "items":
+                  "type": "object"
+                  "properties":
+                    "name":
+                      "type": "string"
+                    "description":
+                      "type": "string"
+                    "price":
+                      "type": "number"
+                      "format": "float"
+        "400":
+          "description": "Invalid request parameters."
+        "500":
+          "description": "Internal server error"
+  "/api/products/{productId}/reviews":
+    "get":
+      "summary": "Retrieve reviews for a specific product"
+      "description": "Provides a list of reviews for the given product."
+      "tags":
+        - "Products"
+      "parameters":
+        -
+          "name": "productId"
+          "in": "path"
+          "required": true
+          "description": "ID of the product to retrieve reviews for."
+          "schema":
+            "type": "integer"
+      "responses":
+        "200":
+          "description": "List of reviews successfully retrieved."
+          "content":
+            "application/json":
+              "schema":
+                "type": "array"
+                "items":
+                  "type": "object"
+                  "properties":
+                    "id":
+                      "type": "integer"
+                      "format": "int64"
+                      "description": "Unique identifier for the review."
+                    "productId":
+                      "type": "integer"
+                      "format": "int64"
+                      "description": "Unique identifier for the reviewed product."
+                    "title":
+                      "type": "string"
+                      "description": "Title or header of the review."
+                    "content":
+                      "type": "string"
+                      "description": "Detailed content of the review."
+                    "rating":
+                      "type": "integer"
+                      "format": "int32"
+                      "minimum": 1
+                      "maximum": 5
+                      "description": "Rating given to the product, usually from 1 to 5."
+                    "date":
+                      "type": "string"
+                      "format": "date-time"
+                      "description": "Date and time when the review was submitted."
+        "404":
+          "description": "Product not found"
+        "500":
+          "description": "Internal server error"
+    "post":
+      "summary": "Add a review for a specific product"
+      "description": "Allows authenticated users to submit a review for the given product."
+      "tags":
+        - "Products"
+      "security":
+        -
+          "BearerAuth": []
+      "parameters":
+        -
+          "name": "productId"
+          "in": "path"
+          "required": true
+          "description": "ID of the product to review."
+          "schema":
+            "type": "integer"
+      "requestBody":
+        "description": "Review details"
+        "required": true
+        "content":
+          "application/json":
+            "schema":
+              "type": "object"
+              "properties":
+                "productId":
+                  "type": "integer"
+                  "format": "int64"
+                  "description": "Unique identifier for the reviewed product."
+                "title":
+                  "type": "string"
+                  "description": "Title or header of the review."
+                "content":
+                  "type": "string"
+                  "description": "Detailed content of the review."
+                "rating":
+                  "type": "integer"
+                  "format": "int32"
+                  "minimum": 1
+                  "maximum": 5
+                  "description": "Rating given to the product, usually from 1 to 5."
+      "responses":
+        "201":
+          "description": "Review submitted successfully"
+        "400":
+          "description": "Invalid request data"
+        "401":
+          "description": "Unauthorized"
+        "404":
+          "description": "Product not found"
+        "500":
+          "description": "Internal server error"
+  "/api/products/top-rated":
+    "get":
+      "summary": "Retrieve top-rated products"
+      "description": "Provides a list of products with the highest average ratings."
+      "tags":
+        - "Products"
+      "parameters":
+        -
+          "in": "query"
+          "name": "limit"
+          "schema":
+            "type": "integer"
+            "default": 10
+          "description": "Limit the number of top-rated products returned (default is 10)."
+        -
+          "in": "query"
+          "name": "minReviewsCount"
+          "schema":
+            "type": "integer"
+          "description": "Minimum number of reviews a product should have to be considered in top-rated (optional filter)."
+      "responses":
+        "200":
+          "description": "List of top-rated products successfully retrieved."
+          "content":
+            "application/json":
+              "schema":
+                "type": "array"
+                "items":
+                  "type": "object"
+                  "properties":
+                    "name":
+                      "type": "string"
+                    "description":
+                      "type": "string"
+                    "price":
+                      "type": "number"
+                      "format": "float"
+        "500":
+          "description": "Internal server error"
+  "/api/products/{productId}/images":
+    "get":
+      "summary": "Retrieve images for a specific product"
+      "description": "Provides a list of image URLs or metadata associated with the given product."
+      "tags":
+        - "Products"
+      "parameters":
+        -
+          "name": "productId"
+          "in": "path"
+          "required": true
+          "description": "ID of the product to retrieve images for."
+          "schema":
+            "type": "integer"
+      "responses":
+        "200":
+          "description": "List of product images successfully retrieved."
+          "content":
+            "application/json":
+              "schema":
+                "type": "array"
+                "items":
+                  "type": "object"
+                  "properties":
+                    "id":
+                      "type": "string"
+                      "description": "Unique identifier for the image."
+                    "url":
+                      "type": "string"
+                      "format": "uri"
+                      "description": "URL where the image can be accessed."
+                    "altText":
+                      "type": "string"
+                      "description": "Alternative text for the image, useful for accessibility."
+                    "uploadedAt":
+                      "type": "string"
+                      "format": "date-time"
+                      "description": "Date and time when the image was uploaded."
+        "404":
+          "description": "Product not found"
+        "500":
+          "description": "Internal server error"
+    "post":
+      "summary": "Upload a new image for a specific product"
+      "description": "Allows administrators or authorized users to upload a new image for the given product."
+      "tags":
+        - "Products"
+      "security":
+        -
+          "BearerAuth": []
+      "parameters":
+        -
+          "name": "productId"
+          "in": "path"
+          "required": true
+          "description": "ID of the product to upload an image for."
+          "schema":
+            "type": "integer"
+      "requestBody":
+        "description": "Image to be uploaded"
+        "required": true
+        "content":
+          "image/*":
+            "schema":
+              "type": "string"
+              "format": "binary"
+      "responses":
+        "201":
+          "description": "Image uploaded successfully"
+        "400":
+          "description": "Invalid request data"
+        "401":
+          "description": "Unauthorized"
+        "404":
+          "description": "Product not found"
+        "500":
+          "description": "Internal server error"
+    "delete":
+      "summary": "Delete a specific image for a product"
+      "description": "Allows administrators or authorized users to delete an image associated with the given product."
+      "tags":
+        - "Products"
+      "security":
+        -
+          "BearerAuth": []
+      "parameters":
+        -
+          "name": "productId"
+          "in": "path"
+          "required": true
+          "description": "ID of the product to delete an image for."
+          "schema":
+            "type": "integer"
+        -
+          "name": "imageId"
+          "in": "query"
+          "required": true
+          "description": "ID or identifier of the image to be deleted."
+          "schema":
+            "type": "string"
+      "responses":
+        "204":
+          "description": "Image deleted successfully"
+        "401":
+          "description": "Unauthorized"
+        "404":
+          "description": "Product or image not found"
+        "500":
+          "description": "Internal server error"
+  "/api/products/recommendations":
+    "get":
+      "summary": "Retrieve product recommendations for the user"
+      "description": "Provides a list of recommended products based on user behavior, popular products, or other algorithms."
+      "tags":
+        - "Products"
+      "parameters":
+        -
+          "in": "query"
+          "name": "limit"
+          "schema":
+            "type": "integer"
+            "default": 10
+          "description": "Limit the number of recommended products returned (default is 10)."
+      "security":
+        -
+          "BearerAuth": []
+      "responses":
+        "200":
+          "description": "List of recommended products successfully retrieved."
+          "content":
+            "application/json":
+              "schema":
+                "type": "array"
+                "items":
+                  "type": "object"
+                  "properties":
+                    "name":
+                      "type": "string"
+                    "description":
+                      "type": "string"
+                    "price":
+                      "type": "number"
+                      "format": "float"
+        "401":
+          "description": "Unauthorized"
+        "500":
+          "description": "Internal server error"
+  "/api/products/{productId}/related":
+    "get":
+      "summary": "Retrieve products related to a specific product"
+      "description": "Provides a list of products that are related to the given product."
+      "tags":
+        - "Products"
+      "parameters":
+        -
+          "name": "productId"
+          "in": "path"
+          "required": true
+          "description": "ID of the product to retrieve related products for."
+          "schema":
+            "type": "integer"
+        -
+          "in": "query"
+          "name": "limit"
+          "schema":
+            "type": "integer"
+            "default": 5
+          "description": "Limit the number of related products returned (default is 5)."
+      "responses":
+        "200":
+          "description": "List of related products successfully retrieved."
+          "content":
+            "application/json":
+              "schema":
+                "type": "array"
+                "items":
+                  "type": "object"
+                  "properties":
+                    "name":
+                      "type": "string"
+                    "description":
+                      "type": "string"
+                    "price":
+                      "type": "number"
+                      "format": "float"
+        "404":
+          "description": "Product not found"
+        "500":
+          "description": "Internal server error"
+  "/api/products/{productId}/inventory":
+    "get":
+      "summary": "Retrieve inventory data for a specific product"
+      "description": "Provides current stock levels and inventory status for the given product."
+      "tags":
+        - "Products"
+      "parameters":
+        -
+          "name": "productId"
+          "in": "path"
+          "required": true
+          "description": "ID of the product to retrieve inventory data for."
+          "schema":
+            "type": "integer"
+      "responses":
+        "200":
+          "description": "Inventory data successfully retrieved."
+          "content":
+            "application/json":
+              "schema":
+                "type": "object"
+                "properties":
+                  "stockLevel":
+                    "type": "integer"
+                    "description": "Current number of items in stock."
+                  "status":
+                    "type": "string"
+                    "enum":
+                      - "in_stock"
+                      - "low_stock"
+                      - "out_of_stock"
+                    "description": "Current inventory status."
+                  "lastUpdated":
+                    "type": "string"
+                    "format": "date-time"
+                    "description": "Date and time when the inventory was last updated."
+        "404":
+          "description": "Product not found"
+        "500":
+          "description": "Internal server error"
+    "put":
+      "summary": "Update inventory data for a specific product"
+      "description": "Allows administrators or authorized users to update stock levels and inventory status for the given product."
+      "tags":
+        - "Products"
+      "security":
+        -
+          "BearerAuth": []
+      "parameters":
+        -
+          "name": "productId"
+          "in": "path"
+          "required": true
+          "description": "ID of the product to update inventory data for."
+          "schema":
+            "type": "integer"
+      "requestBody":
+        "description": "Updated inventory data"
+        "required": true
+        "content":
+          "application/json":
+            "schema":
+              "type": "object"
+              "properties":
+                "stockLevel":
+                  "type": "integer"
+                  "description": "Updated number of items in stock."
+                "status":
+                  "type": "string"
+                  "enum":
+                    - "in_stock"
+                    - "low_stock"
+                    - "out_of_stock"
+                  "description": "Updated inventory status."
+      "responses":
+        "200":
+          "description": "Inventory data updated successfully"
+        "400":
+          "description": "Invalid request data"
+        "401":
+          "description": "Unauthorized"
+        "404":
+          "description": "Product not found"
+        "500":
+          "description": "Internal server error"
+  "/api/products/{productId}/price-history":
+    "get":
+      "summary": "Retrieve price history for a specific product"
+      "description": "Provides a chronological list of price changes for the given product."
+      "tags":
+        - "Products"
+      "parameters":
+        -
+          "name": "productId"
+          "in": "path"
+          "required": true
+          "description": "ID of the product to retrieve price history for."
+          "schema":
+            "type": "integer"
+      "responses":
+        "200":
+          "description": "Price history data successfully retrieved."
+          "content":
+            "application/json":
+              "schema":
+                "type": "array"
+                "items":
+                  "type": "object"
+                  "properties":
+                    "price":
+                      "type": "number"
+                      "format": "float"
+                      "description": "The price of the product at a specific point in time."
+                    "effectiveDate":
+                      "type": "string"
+                      "format": "date-time"
+                      "description": "Date and time when this price became effective."
+                    "reason":
+                      "type": "string"
+                      "description": "Optional field denoting the reason for the price change (e.g., seasonal sale, supplier price change)."
+        "404":
+          "description": "Product not found"
+        "500":
+          "description": "Internal server error"
+  "/api/products/{productId}/promotions":
+    "get":
+      "summary": "Retrieve promotions for a specific product"
+      "description": "Provides a list of active and past promotions associated with the given product."
+      "tags":
+        - "Products"
+      "parameters":
+        -
+          "name": "productId"
+          "in": "path"
+          "required": true
+          "description": "ID of the product to retrieve promotions for."
+          "schema":
+            "type": "integer"
+      "responses":
+        "200":
+          "description": "Promotions data successfully retrieved."
+          "content":
+            "application/json":
+              "schema":
+                "type": "array"
+                "items":
+                  "type": "object"
+                  "properties":
+                    "promotionId":
+                      "type": "string"
+                      "description": "Unique identifier for the promotion."
+                    "name":
+                      "type": "string"
+                      "description": "Name or title of the promotion."
+                    "description":
+                      "type": "string"
+                      "description": "Detailed description of the promotion."
+                    "discountType":
+                      "type": "string"
+                      "enum":
+                        - "percentage"
+                        - "fixed_amount"
+                      "description": "Type of discount (percentage off or a fixed amount off)."
+                    "discountValue":
+                      "type": "number"
+                      "format": "float"
+                      "description": "Value of the discount, based on the discountType."
+                    "startDate":
+                      "type": "string"
+                      "format": "date-time"
+                      "description": "Date and time when the promotion began."
+                    "endDate":
+                      "type": "string"
+                      "format": "date-time"
+                      "description": "Date and time when the promotion ended or is set to end."
+                    "isActive":
+                      "type": "boolean"
+                      "description": "Flag indicating if the promotion is currently active."
+        "404":
+          "description": "Product not found"
+        "500":
+          "description": "Internal server error"
+  "/api/products/batch-update":
+    "put":
+      "summary": "Bulk update products"
+      "description": "Allows for bulk updates to multiple products at once."
+      "tags":
+        - "Products"
+      "security":
+        -
+          "BearerAuth": []
+      "requestBody":
+        "description": "A list of products with updated data."
+        "required": true
+        "content":
+          "application/json":
+            "schema":
+              "type": "array"
+              "items":
+                "type": "object"
+                "properties":
+                  "productId":
+                    "type": "integer"
+                    "description": "ID of the product to be updated."
+                  "name":
+                    "type": "string"
+                    "description": "Updated product name (if changed)."
+                  "price":
+                    "type": "number"
+                    "format": "float"
+                    "description": "Updated price (if changed)."
+                  "inventory":
+                    "type": "integer"
+                    "description": "Updated inventory count (if changed)."
+                  "description":
+                    "type": "string"
+                    "description": "Updated product description (if changed)."
+      "responses":
+        "200":
+          "description": "Products updated successfully."
+        "400":
+          "description": "Invalid request data."
+        "401":
+          "description": "Unauthorized."
+        "500":
+          "description": "Internal server error."
+  "/api/products/tags":
+    "get":
+      "summary": "List all product tags"
+      "description": "Provides a list of all tags associated with products."
+      "tags":
+        - "Products"
+      "responses":
+        "200":
+          "description": "List of product tags successfully retrieved."
+          "content":
+            "application/json":
+              "schema":
+                "type": "array"
+                "items":
+                  "type": "string"
+        "500":
+          "description": "Internal server error"
+    "post":
+      "summary": "Add new product tags"
+      "description": "Allows administrators or authorized users to add new tags for products."
+      "tags":
+        - "Products"
+      "security":
+        -
+          "BearerAuth": []
+      "requestBody":
+        "description": "A list of tags to be added."
+        "required": true
+        "content":
+          "application/json":
+            "schema":
+              "type": "array"
+              "items":
+                "type": "string"
+      "responses":
+        "201":
+          "description": "Tags added successfully."
+        "400":
+          "description": "Invalid request data."
+        "401":
+          "description": "Unauthorized."
+        "500":
+          "description": "Internal server error."
+  "/api/admin/users":
+    "get":
+      "summary": "List all users"
+      "description": "Provides a list of all registered users on the platform."
+      "tags":
+        - "Admin"
+      "security":
+        -
+          "BearerAuth": []
+      "responses":
+        "200":
+          "description": "List of users successfully retrieved."
+          "content":
+            "application/json":
+              "schema":
+                "type": "array"
+                "items":
+                  "type": "object"
+                  "properties":
+                    "userId":
+                      "type": "integer"
+                      "format": "int64"
+                      "description": "Unique identifier for the user."
+                    "username":
+                      "type": "string"
+                      "description": "Unique username used for login."
+                    "email":
+                      "type": "string"
+                      "format": "email"
+                      "description": "Email address of the user."
+                    "firstName":
+                      "type": "string"
+                      "description": "First name of the user."
+                    "lastName":
+                      "type": "string"
+                      "description": "Last name of the user."
+                    "dateRegistered":
+                      "type": "string"
+                      "format": "date-time"
+                      "description": "Date and time when the user registered."
+                    "lastLogin":
+                      "type": "string"
+                      "format": "date-time"
+                      "description": "Date and time of the user's last successful login."
+                    "role":
+                      "type": "string"
+                      "description": "Role or roles assigned to the user. This could be an array if users can have multiple roles."
+                    "isActive":
+                      "type": "boolean"
+                      "default": true
+                      "description": "Flag indicating if the user's account is active."
+                    "avatarUrl":
+                      "type": "string"
+                      "format": "uri"
+                      "description": "URL to the user's avatar or profile picture (if any)."
+                    "address":
+                      "type": "string"
+                      "description": "Physical address of the user (if provided)."
+                    "phone":
+                      "type": "string"
+                      "description": "Contact phone number for the user."
+                  "required":
+                    - "userId"
+                    - "username"
+                    - "email"
+                    - "firstName"
+                    - "lastName"
+        "401":
+          "description": "Unauthorized."
+        "500":
+          "description": "Internal server error."
+    "post":
+      "summary": "Add a new user"
+      "description": "Allows administrators to manually add a new user to the platform."
+      "tags":
+        - "Admin"
+      "security":
+        -
+          "BearerAuth": []
+      "requestBody":
+        "description": "User data for the new user."
+        "required": true
+        "content":
+          "application/json":
+            "schema":
+              "type": "object"
+              "properties":
+                "username":
+                  "type": "string"
+                "email":
+                  "type": "string"
+                  "format": "email"
+                "password":
+                  "type": "string"
+                  "format": "password"
+      "responses":
+        "201":
+          "description": "User added successfully."
+        "400":
+          "description": "Invalid request data."
+        "401":
+          "description": "Unauthorized."
+        "500":
+          "description": "Internal server error."
+    "put":
+      "summary": "Bulk update users"
+      "description": "Allows administrators to update multiple users at once."
+      "tags":
+        - "Admin"
+      "security":
+        -
+          "BearerAuth": []
+      "requestBody":
+        "description": "A list of users with updated data."
+        "required": true
+        "content":
+          "application/json":
+            "schema":
+              "type": "array"
+              "items":
+                "type": "object"
+                "properties":
+                  "username":
+                    "type": "string"
+                    "description": "Updated username. It should remain unique."
+                  "email":
+                    "type": "string"
+                    "format": "email"
+                    "description": "Updated email address."
+                  "firstName":
+                    "type": "string"
+                    "description": "Updated first name."
+                  "lastName":
+                    "type": "string"
+                    "description": "Updated last name."
+                  "role":
+                    "type": "string"
+                    "description": "Updated role or roles. This could be an array if users can have multiple roles."
+                  "isActive":
+                    "type": "boolean"
+                    "description": "Flag indicating if the user's account should be set to active or inactive."
+                  "avatarUrl":
+                    "type": "string"
+                    "format": "uri"
+                    "description": "Updated URL to the user's avatar or profile picture."
+                  "address":
+                    "type": "string"
+                    "description": "Updated physical address of the user."
+                  "phone":
+                    "type": "string"
+                    "description": "Updated contact phone number."
+                "minProperties": 1
+                "additionalProperties": false
+      "responses":
+        "200":
+          "description": "Users updated successfully."
+        "400":
+          "description": "Invalid request data."
+        "401":
+          "description": "Unauthorized."
+        "500":
+          "description": "Internal server error."
+    "delete":
+      "summary": "Bulk delete users"
+      "description": "Allows administrators to delete multiple users at once."
+      "tags":
+        - "Admin"
+      "security":
+        -
+          "BearerAuth": []
+      "requestBody":
+        "description": "A list of user IDs to be deleted."
+        "required": true
+        "content":
+          "application/json":
+            "schema":
+              "type": "array"
+              "items":
+                "type": "integer"
+      "responses":
+        "200":
+          "description": "Users deleted successfully."
+        "400":
+          "description": "Invalid request data."
+        "401":
+          "description": "Unauthorized."
+        "500":
+          "description": "Internal server error."
+  "/api/admin/users/{userId}/roles":
+    "get":
+      "summary": "List roles for a specific user"
+      "description": "Provides a list of roles assigned to the specified user."
+      "tags":
+        - "Admin"
+      "security":
+        -
+          "BearerAuth": []
+      "parameters":
+        -
+          "name": "userId"
+          "in": "path"
+          "required": true
+          "description": "ID of the user to retrieve roles for."
+          "schema":
+            "type": "integer"
+      "responses":
+        "200":
+          "description": "Roles data successfully retrieved."
+          "content":
+            "application/json":
+              "schema":
+                "type": "array"
+                "items":
+                  "type": "string"
+        "401":
+          "description": "Unauthorized."
+        "404":
+          "description": "User not found."
+        "500":
+          "description": "Internal server error."
+    "put":
+      "summary": "Assign or update roles for a specific user"
+      "description": "Allows administrators to assign or modify roles for a given user."
+      "tags":
+        - "Admin"
+      "security":
+        -
+          "BearerAuth": []
+      "parameters":
+        -
+          "name": "userId"
+          "in": "path"
+          "required": true
+          "description": "ID of the user to assign or update roles."
+          "schema":
+            "type": "integer"
+      "requestBody":
+        "description": "List of roles to be assigned to the user."
+        "required": true
+        "content":
+          "application/json":
+            "schema":
+              "type": "array"
+              "items":
+                "type": "string"
+      "responses":
+        "200":
+          "description": "Roles updated successfully."
+        "400":
+          "description": "Invalid request data."
+        "401":
+          "description": "Unauthorized."
+        "404":
+          "description": "User not found."
+        "500":
+          "description": "Internal server error."
+    "delete":
+      "summary": "Remove roles from a specific user"
+      "description": "Allows administrators to remove specific roles from a user."
+      "tags":
+        - "Admin"
+      "security":
+        -
+          "BearerAuth": []
+      "parameters":
+        -
+          "name": "userId"
+          "in": "path"
+          "required": true
+          "description": "ID of the user to remove roles from."
+          "schema":
+            "type": "integer"
+      "requestBody":
+        "description": "List of roles to be removed from the user."
+        "required": true
+        "content":
+          "application/json":
+            "schema":
+              "type": "array"
+              "items":
+                "type": "string"
+      "responses":
+        "200":
+          "description": "Roles removed successfully."
+        "400":
+          "description": "Invalid request data."
+        "401":
+          "description": "Unauthorized."
+        "404":
+          "description": "User not found."
+        "500":
+          "description": "Internal server error."
+  "/api/admin/users/{userId}/bans":
+    "post":
+      "summary": "Ban a specific user"
+      "description": "Allows administrators to ban a user, preventing them from accessing the platform or making transactions."
+      "tags":
+        - "Admin"
+      "security":
+        -
+          "BearerAuth": []
+      "parameters":
+        -
+          "name": "userId"
+          "in": "path"
+          "required": true
+          "description": "ID of the user to ban."
+          "schema":
+            "type": "integer"
+      "requestBody":
+        "description": "Details and reason for the ban."
+        "required": true
+        "content":
+          "application/json":
+            "schema":
+              "type": "object"
+              "properties":
+                "reason":
+                  "type": "string"
+                  "description": "Reason for banning the user."
+                "duration":
+                  "type": "string"
+                  "format": "date-time"
+                  "description": "Optional end date/time for the ban. If not provided, the ban is indefinite."
+      "responses":
+        "200":
+          "description": "User banned successfully."
+        "400":
+          "description": "Invalid request data."
+        "401":
+          "description": "Unauthorized."
+        "404":
+          "description": "User not found."
+        "500":
+          "description": "Internal server error."
+    "delete":
+      "summary": "Unban a specific user"
+      "description": "Allows administrators to lift a ban on a user, restoring their access to the platform."
+      "tags":
+        - "Admin"
+      "security":
+        -
+          "BearerAuth": []
+      "parameters":
+        -
+          "name": "userId"
+          "in": "path"
+          "required": true
+          "description": "ID of the user to unban."
+          "schema":
+            "type": "integer"
+      "responses":
+        "200":
+          "description": "User unbanned successfully."
+        "401":
+          "description": "Unauthorized."
+        "404":
+          "description": "User not found or not banned."
+        "500":
+          "description": "Internal server error."
+  "/api/admin/orders":
+    "get":
+      "summary": "List all orders"
+      "description": "Provides a list of all orders placed on the platform, with filters for date, status, etc."
+      "tags":
+        - "Admin"
+      "security":
+        -
+          "BearerAuth": []
+      "parameters":
+        -
+          "name": "status"
+          "in": "query"
+          "required": false
+          "description": "Filter orders by their status (e.g., \"pending\", \"shipped\", \"completed\", \"returned\")."
+          "schema":
+            "type": "string"
+        -
+          "name": "fromDate"
+          "in": "query"
+          "required": false
+          "description": "Filter orders placed after this date."
+          "schema":
+            "type": "string"
+            "format": "date"
+        -
+          "name": "toDate"
+          "in": "query"
+          "required": false
+          "description": "Filter orders placed before this date."
+          "schema":
+            "type": "string"
+            "format": "date"
+      "responses":
+        "200":
+          "description": "List of orders successfully retrieved."
+          "content":
+            "application/json":
+              "schema":
+                "type": "array"
+                "items":
+                  "type": "object"
+                  "properties":
+                    "id":
+                      "type": "integer"
+                      "format": "int64"
+                      "description": "Unique identifier for the order."
+                    "orderDate":
+                      "type": "string"
+                      "format": "date-time"
+                      "description": "Date and time when the order was placed."
+                    "status":
+                      "type": "string"
+                      "enum":
+                        - "pending"
+                        - "processing"
+                        - "shipped"
+                        - "completed"
+                        - "canceled"
+                      "description": "Current status of the order."
+                    "items":
+                      "type": "array"
+                      "items":
+                        "type": "object"
+                        "properties":
+                          "productId":
+                            "type": "integer"
+                            "format": "int64"
+                            "description": "Unique identifier for the product."
+                          "productName":
+                            "type": "string"
+                            "description": "Name of the product."
+                          "quantity":
+                            "type": "integer"
+                            "format": "int32"
+                            "description": "Quantity of the product ordered."
+                          "unitPrice":
+                            "type": "number"
+                            "format": "float"
+                            "description": "Price of the product per unit."
+                          "total":
+                            "type": "number"
+                            "format": "float"
+                            "description": "Total price for this item (unitPrice * quantity)."
+                      "description": "List of products/items in the order."
+                    "totalAmount":
+                      "type": "number"
+                      "format": "float"
+                      "description": "Total amount of the order."
+                    "shippingAddress":
+                      "type": "object"
+                      "properties":
+                        "street":
+                          "type": "string"
+                          "description": "Street address."
+                        "city":
+                          "type": "string"
+                          "description": "City name."
+                        "state":
+                          "type": "string"
+                          "description": "State or region."
+                        "postalCode":
+                          "type": "string"
+                          "description": "Postal or ZIP code."
+                        "country":
+                          "type": "string"
+                          "description": "Country name."
+                    "paymentMethod":
+                      "type": "string"
+                      "description": "Payment method used for the order (e.g., \"Credit Card\", \"PayPal\")."
+                    "trackingNumber":
+                      "type": "string"
+                      "description": "Tracking number for shipped orders."
+        "401":
+          "description": "Unauthorized."
+        "500":
+          "description": "Internal server error."
+    "put":
+      "summary": "Bulk update orders"
+      "description": "Allows administrators to update multiple orders at once, typically for changing order status."
+      "tags":
+        - "Admin"
+      "security":
+        -
+          "BearerAuth": []
+      "requestBody":
+        "description": "List of orders with updated data."
+        "required": true
+        "content":
+          "application/json":
+            "schema":
+              "type": "array"
+              "items":
+                "type": "object"
+                "properties":
+                  "status":
+                    "type": "string"
+                    "enum":
+                      - "pending"
+                      - "processed"
+                      - "shipped"
+                      - "completed"
+                      - "canceled"
+                      - "returned"
+                    "description": "The updated status of the order."
+                  "trackingNumber":
+                    "type": "string"
+                    "description": "If the order is shipped, this field can be updated with the tracking number for the shipment."
+                  "estimatedDeliveryDate":
+                    "type": "string"
+                    "format": "date-time"
+                    "description": "An updated estimated delivery date for the order."
+                  "notes":
+                    "type": "string"
+                    "description": "Any additional administrative notes or comments about the order."
+                  "cancelReason":
+                    "type": "string"
+                    "description": "If the order is canceled, a reason can be provided here."
+                  "returnReason":
+                    "type": "string"
+                    "description": "If the order is returned, a reason can be provided here."
+                "required":
+                  - "status"
+      "responses":
+        "200":
+          "description": "Orders updated successfully."
+        "400":
+          "description": "Invalid request data."
+        "401":
+          "description": "Unauthorized."
+        "500":
+          "description": "Internal server error."
+  "/api/admin/inventory":
+    "get":
+      "summary": "List all inventory items"
+      "description": "Provides a list of all products with their current inventory levels and other related details."
+      "tags":
+        - "Admin"
+      "security":
+        -
+          "BearerAuth": []
+      "parameters":
+        -
+          "name": "belowThreshold"
+          "in": "query"
+          "required": false
+          "description": "Filter products that have inventory below a certain threshold."
+          "schema":
+            "type": "integer"
+      "responses":
+        "200":
+          "description": "List of inventory items successfully retrieved."
+          "content":
+            "application/json":
+              "schema":
+                "type": "array"
+                "items":
+                  "type": "object"
+                  "properties":
+                    "productId":
+                      "type": "integer"
+                      "format": "int64"
+                      "description": "Unique identifier for the product."
+                    "productName":
+                      "type": "string"
+                      "description": "Name of the product."
+                    "currentStock":
+                      "type": "integer"
+                      "description": "The current stock level for the product."
+                    "restockThreshold":
+                      "type": "integer"
+                      "description": "The threshold at which a restock alert is triggered. When the current stock drops below this value, a restock might be necessary."
+                    "lastRestockDate":
+                      "type": "string"
+                      "format": "date-time"
+                      "description": "The date and time when the product was last restocked."
+                    "nextRestockDate":
+                      "type": "string"
+                      "format": "date-time"
+                      "description": "Estimated date and time for the next restocking, if applicable."
+                    "supplier":
+                      "type": "string"
+                      "description": "The supplier or manufacturer of the product."
+                    "notes":
+                      "type": "string"
+                      "description": "Any additional notes or comments about the inventory item."
+                  "required":
+                    - "productId"
+                    - "productName"
+                    - "currentStock"
+        "401":
+          "description": "Unauthorized."
+        "500":
+          "description": "Internal server error."
+    "put":
+      "summary": "Bulk update inventory"
+      "description": "Allows administrators to update inventory levels for multiple products at once."
+      "tags":
+        - "Admin"
+      "security":
+        -
+          "BearerAuth": []
+      "requestBody":
+        "description": "List of inventory updates."
+        "required": true
+        "content":
+          "application/json":
+            "schema":
+              "type": "array"
+              "items":
+                "type": "object"
+                "properties":
+                  "productId":
+                    "type": "integer"
+                    "format": "int64"
+                    "description": "Unique identifier for the product."
+                  "currentStock":
+                    "type": "integer"
+                    "description": "The updated stock level for the product."
+                  "restockDate":
+                    "type": "string"
+                    "format": "date-time"
+                    "description": "Optional date and time when the product was restocked."
+                  "threshold":
+                    "type": "integer"
+                    "description": "Updated restock threshold. When the stock drops below this value, a restock might be necessary."
+                  "notes":
+                    "type": "string"
+                    "description": "Any additional notes or comments about the inventory update."
+                "required":
+                  - "productId"
+                  - "currentStock"
+      "responses":
+        "200":
+          "description": "Inventory updated successfully."
+        "400":
+          "description": "Invalid request data."
+        "401":
+          "description": "Unauthorized."
+        "500":
+          "description": "Internal server error."
+  "/api/admin/promotions":
+    "get":
+      "summary": "List all active promotions"
+      "description": "Provides a list of all active promotions on the platform."
+      "tags":
+        - "Admin"
+      "security":
+        -
+          "BearerAuth": []
+      "responses":
+        "200":
+          "description": "List of promotions successfully retrieved."
+          "content":
+            "application/json":
+              "schema":
+                "type": "array"
+                "items":
+                  "type": "object"
+                  "properties":
+                    "promotionId":
+                      "type": "integer"
+                      "format": "int64"
+                      "description": "Unique identifier for the promotion."
+                    "name":
+                      "type": "string"
+                      "description": "Name or title of the promotion."
+                    "type":
+                      "type": "string"
+                      "enum":
+                        - "percentage"
+                        - "flat_discount"
+                        - "buy_one_get_one"
+                        - "other"
+                      "description": "Type of promotion, e.g., percentage discount, flat discount, etc."
+                    "value":
+                      "type": "number"
+                      "description": "The value associated with the promotion. For example, if it's a percentage discount, this might be \"10\" for 10%."
+                    "startDate":
+                      "type": "string"
+                      "format": "date-time"
+                      "description": "Start date and time for when the promotion becomes active."
+                    "endDate":
+                      "type": "string"
+                      "format": "date-time"
+                      "description": "End date and time for when the promotion expires."
+                    "applicableProducts":
+                      "type": "array"
+                      "items":
+                        "type": "integer"
+                        "format": "int64"
+                      "description": "List of product IDs to which the promotion is applicable. If empty, it might be applicable to all products or specific categories."
+                    "notes":
+                      "type": "string"
+                      "description": "Any additional notes or details about the promotion."
+                    "createdDate":
+                      "type": "string"
+                      "format": "date-time"
+                      "description": "The date and time when the promotion was created."
+                    "modifiedDate":
+                      "type": "string"
+                      "format": "date-time"
+                      "description": "The last date and time when the promotion was updated."
+                  "required":
+                    - "promotionId"
+                    - "name"
+                    - "type"
+                    - "value"
+                    - "startDate"
+                    - "endDate"
+        "401":
+          "description": "Unauthorized."
+        "500":
+          "description": "Internal server error."
+    "post":
+      "summary": "Create a new promotion"
+      "description": "Allows administrators to create a new promotion or discount."
+      "tags":
+        - "Admin"
+      "security":
+        -
+          "BearerAuth": []
+      "requestBody":
+        "description": "Details of the new promotion."
+        "required": true
+        "content":
+          "application/json":
+            "schema":
+              "type": "object"
+              "properties":
+                "promotionId":
+                  "type": "integer"
+                  "format": "int64"
+                  "description": "Unique identifier for the promotion."
+                "name":
+                  "type": "string"
+                  "description": "Name or title of the promotion."
+                "type":
+                  "type": "string"
+                  "enum":
+                    - "percentage"
+                    - "flat_discount"
+                    - "buy_one_get_one"
+                    - "other"
+                  "description": "Type of promotion, e.g., percentage discount, flat discount, etc."
+                "value":
+                  "type": "number"
+                  "description": "The value associated with the promotion. For example, if it's a percentage discount, this might be \"10\" for 10%."
+                "startDate":
+                  "type": "string"
+                  "format": "date-time"
+                  "description": "Start date and time for when the promotion becomes active."
+                "endDate":
+                  "type": "string"
+                  "format": "date-time"
+                  "description": "End date and time for when the promotion expires."
+                "applicableProducts":
+                  "type": "array"
+                  "items":
+                    "type": "integer"
+                    "format": "int64"
+                  "description": "List of product IDs to which the promotion is applicable. If empty, it might be applicable to all products or specific categories."
+                "notes":
+                  "type": "string"
+                  "description": "Any additional notes or details about the promotion."
+                "createdDate":
+                  "type": "string"
+                  "format": "date-time"
+                  "description": "The date and time when the promotion was created."
+                "modifiedDate":
+                  "type": "string"
+                  "format": "date-time"
+                  "description": "The last date and time when the promotion was updated."
+              "required":
+                - "promotionId"
+                - "name"
+                - "type"
+                - "value"
+                - "startDate"
+                - "endDate"
+      "responses":
+        "201":
+          "description": "Promotion created successfully."
+        "400":
+          "description": "Invalid request data."
+        "401":
+          "description": "Unauthorized."
+        "500":
+          "description": "Internal server error."
+    "put":
+      "summary": "Bulk update promotions"
+      "description": "Allows administrators to update multiple promotions at once."
+      "tags":
+        - "Admin"
+      "security":
+        -
+          "BearerAuth": []
+      "requestBody":
+        "description": "List of promotions with updated data."
+        "required": true
+        "content":
+          "application/json":
+            "schema":
+              "type": "array"
+              "items":
+                "type": "object"
+                "properties":
+                  "promotionId":
+                    "type": "integer"
+                    "format": "int64"
+                    "description": "Unique identifier for the promotion. This is typically used for reference and not for update purposes."
+                  "name":
+                    "type": "string"
+                    "description": "Updated name or title of the promotion."
+                  "type":
+                    "type": "string"
+                    "enum":
+                      - "percentage"
+                      - "flat_discount"
+                      - "buy_one_get_one"
+                      - "other"
+                    "description": "Type of promotion, e.g., percentage discount, flat discount, etc."
+                  "value":
+                    "type": "number"
+                    "description": "The value associated with the promotion. For example, if it's a percentage discount, this might be \"10\" for 10%."
+                  "startDate":
+                    "type": "string"
+                    "format": "date-time"
+                    "description": "Updated start date and time for when the promotion becomes active."
+                  "endDate":
+                    "type": "string"
+                    "format": "date-time"
+                    "description": "Updated end date and time for when the promotion expires."
+                  "applicableProducts":
+                    "type": "array"
+                    "items":
+                      "type": "integer"
+                      "format": "int64"
+                    "description": "List of product IDs to which the promotion is applicable. If empty, it might be applicable to all products or specific categories."
+                  "notes":
+                    "type": "string"
+                    "description": "Any additional notes or updates about the promotion."
+                "minProperties": 1
+                "additionalProperties": false
+      "responses":
+        "200":
+          "description": "Promotions updated successfully."
+        "400":
+          "description": "Invalid request data."
+        "401":
+          "description": "Unauthorized."
+        "500":
+          "description": "Internal server error."
+    "delete":
+      "summary": "Delete a promotion"
+      "description": "Allows administrators to delete an existing promotion."
+      "tags":
+        - "Admin"
+      "security":
+        -
+          "BearerAuth": []
+      "parameters":
+        -
+          "name": "promotionId"
+          "in": "query"
+          "required": true
+          "description": "ID of the promotion to delete."
+          "schema":
+            "type": "integer"
+      "responses":
+        "200":
+          "description": "Promotion deleted successfully."
+        "401":
+          "description": "Unauthorized."
+        "404":
+          "description": "Promotion not found."
+        "500":
+          "description": "Internal server error."
+  "/api/admin/reports/sales":
+    "get":
+      "summary": "Generate and retrieve a sales report"
+      "description": "Provides an overview of sales, including total sales, revenue, top-selling products, and other related metrics."
+      "tags":
+        - "Admin"
+      "security":
+        -
+          "BearerAuth": []
+      "parameters":
+        -
+          "name": "startDate"
+          "in": "query"
+          "required": false
+          "description": "Start date for the report period."
+          "schema":
+            "type": "string"
+            "format": "date"
+        -
+          "name": "endDate"
+          "in": "query"
+          "required": false
+          "description": "End date for the report period."
+          "schema":
+            "type": "string"
+            "format": "date"
+        -
+          "name": "granularity"
+          "in": "query"
+          "required": false
+          "description": "Level of detail or aggregation for the report, e.g., daily, weekly, monthly."
+          "schema":
+            "type": "string"
+            "enum":
+              - "daily"
+              - "weekly"
+              - "monthly"
+              - "yearly"
+      "responses":
+        "200":
+          "description": "Sales report successfully generated and retrieved."
+          "content":
+            "application/json":
+              "schema":
+                "type": "object"
+                "properties":
+                  "startDate":
+                    "type": "string"
+                    "format": "date"
+                    "description": "The start date for the report period."
+                  "endDate":
+                    "type": "string"
+                    "format": "date"
+                    "description": "The end date for the report period."
+                  "totalSales":
+                    "type": "integer"
+                    "description": "Total number of sales/orders during the report period."
+                  "totalRevenue":
+                    "type": "number"
+                    "format": "float"
+                    "description": "Total revenue generated during the report period."
+                  "averageOrderValue":
+                    "type": "number"
+                    "format": "float"
+                    "description": "The average value of orders during the report period."
+                  "topSellingProducts":
+                    "type": "array"
+                    "items":
+                      "type": "object"
+                      "properties":
+                        "productId":
+                          "type": "integer"
+                          "format": "int64"
+                          "description": "Unique identifier for the product."
+                        "productName":
+                          "type": "string"
+                          "description": "Name of the product."
+                        "quantitySold":
+                          "type": "integer"
+                          "description": "Total quantity of this product sold during the report period."
+                  "leastSellingProducts":
+                    "type": "array"
+                    "items":
+                      "type": "object"
+                      "properties":
+                        "productId":
+                          "type": "integer"
+                          "format": "int64"
+                          "description": "Unique identifier for the product."
+                        "productName":
+                          "type": "string"
+                          "description": "Name of the product."
+                        "quantitySold":
+                          "type": "integer"
+                          "description": "Total quantity of this product sold during the report period."
+                  "dailyBreakdown":
+                    "type": "array"
+                    "items":
+                      "type": "object"
+                      "properties":
+                        "date":
+                          "type": "string"
+                          "format": "date"
+                          "description": "Specific date in the report period."
+                        "sales":
+                          "type": "integer"
+                          "description": "Number of sales on that date."
+                        "revenue":
+                          "type": "number"
+                          "format": "float"
+                          "description": "Revenue generated on that date."
+                "required":
+                  - "startDate"
+                  - "endDate"
+                  - "totalSales"
+                  - "totalRevenue"
+                  - "averageOrderValue"
+        "401":
+          "description": "Unauthorized."
+        "500":
+          "description": "Internal server error."
+  "/api/admin/reports/user-activity":
+    "get":
+      "summary": "Generate and retrieve a user activity report"
+      "description": "Provides insights into user behaviors, including login frequency, pages visited, time spent, and other metrics."
+      "tags":
+        - "Admin"
+      "security":
+        -
+          "BearerAuth": []
+      "parameters":
+        -
+          "name": "startDate"
+          "in": "query"
+          "required": false
+          "description": "Start date for the report period."
+          "schema":
+            "type": "string"
+            "format": "date"
+        -
+          "name": "endDate"
+          "in": "query"
+          "required": false
+          "description": "End date for the report period."
+          "schema":
+            "type": "string"
+            "format": "date"
+        -
+          "name": "granularity"
+          "in": "query"
+          "required": false
+          "description": "Level of detail or aggregation for the report, e.g., daily, weekly, monthly."
+          "schema":
+            "type": "string"
+            "enum":
+              - "daily"
+              - "weekly"
+              - "monthly"
+              - "yearly"
+      "responses":
+        "200":
+          "description": "User activity report successfully generated and retrieved."
+          "content":
+            "application/json":
+              "schema":
+                "type": "object"
+                "properties":
+                  "startDate":
+                    "type": "string"
+                    "format": "date"
+                    "description": "The start date for the report period."
+                  "endDate":
+                    "type": "string"
+                    "format": "date"
+                    "description": "The end date for the report period."
+                  "totalUsers":
+                    "type": "integer"
+                    "description": "Total number of registered users on the platform."
+                  "activeUsers":
+                    "type": "integer"
+                    "description": "Number of users who were active during the report period."
+                  "averageSessionDuration":
+                    "type": "number"
+                    "format": "float"
+                    "description": "Average time (in minutes) a user spends on the platform per session."
+                  "topVisitedPages":
+                    "type": "array"
+                    "items":
+                      "type": "object"
+                      "properties":
+                        "pageName":
+                          "type": "string"
+                          "description": "Name or identifier of the page."
+                        "visitCount":
+                          "type": "integer"
+                          "description": "Number of visits to this page during the report period."
+                  "dailyLogins":
+                    "type": "array"
+                    "items":
+                      "type": "object"
+                      "properties":
+                        "date":
+                          "type": "string"
+                          "format": "date"
+                          "description": "Specific date in the report period."
+                        "loginCount":
+                          "type": "integer"
+                          "description": "Number of user logins on that date."
+                "required":
+                  - "startDate"
+                  - "endDate"
+                  - "totalUsers"
+                  - "activeUsers"
+                  - "averageSessionDuration"
+        "401":
+          "description": "Unauthorized."
+        "500":
+          "description": "Internal server error."
+  "/api/admin/reviews":
+    "get":
+      "summary": "Retrieve a list of product reviews"
+      "description": "Lists all product reviews with filtering and pagination capabilities."
+      "tags":
+        - "Admin"
+      "security":
+        -
+          "BearerAuth": []
+      "parameters":
+        -
+          "name": "productId"
+          "in": "query"
+          "required": false
+          "description": "Filter reviews by specific product ID."
+          "schema":
+            "type": "integer"
+            "format": "int64"
+        -
+          "name": "userId"
+          "in": "query"
+          "required": false
+          "description": "Filter reviews by specific user ID."
+          "schema":
+            "type": "integer"
+            "format": "int64"
+        -
+          "name": "status"
+          "in": "query"
+          "required": false
+          "description": "Filter reviews by status (e.g., approved, pending, rejected)."
+          "schema":
+            "type": "string"
+            "enum":
+              - "approved"
+              - "pending"
+              - "rejected"
+        -
+          "name": "page"
+          "in": "query"
+          "required": false
+          "description": "Pagination - page number."
+          "schema":
+            "type": "integer"
+            "format": "int32"
+        -
+          "name": "limit"
+          "in": "query"
+          "required": false
+          "description": "Pagination - number of reviews per page."
+          "schema":
+            "type": "integer"
+            "format": "int32"
+      "responses":
+        "200":
+          "description": "List of reviews successfully retrieved."
+          "content":
+            "application/json":
+              "schema":
+                "type": "array"
+                "items":
+                  "type": "object"
+                  "properties":
+                    "id":
+                      "type": "integer"
+                      "format": "int64"
+                      "description": "Unique identifier for the review."
+                    "productId":
+                      "type": "integer"
+                      "format": "int64"
+                      "description": "Unique identifier for the reviewed product."
+                    "title":
+                      "type": "string"
+                      "description": "Title or header of the review."
+                    "content":
+                      "type": "string"
+                      "description": "Detailed content of the review."
+                    "rating":
+                      "type": "integer"
+                      "format": "int32"
+                      "minimum": 1
+                      "maximum": 5
+                      "description": "Rating given to the product, usually from 1 to 5."
+                    "date":
+                      "type": "string"
+                      "format": "date-time"
+                      "description": "Date and time when the review was submitted."
+        "401":
+          "description": "Unauthorized."
+        "500":
+          "description": "Internal server error."
+    "put":
+      "summary": "Update the status of a review"
+      "description": "Allows administrators to approve, reject, or update review status."
+      "tags":
+        - "Admin"
+      "security":
+        -
+          "BearerAuth": []
+      "requestBody":
+        "description": "Review update details"
+        "required": true
+        "content":
+          "application/json":
+            "schema":
+              "type": "object"
+              "properties":
+                "reviewId":
+                  "type": "integer"
+                  "format": "int64"
+                  "description": "Unique identifier for the review being updated."
+                "status":
+                  "type": "string"
+                  "enum":
+                    - "approved"
+                    - "pending"
+                    - "rejected"
+                  "description": "The new status for the review."
+                "adminComment":
+                  "type": "string"
+                  "description": "Optional comment by the administrator regarding the update (e.g., reason for rejection)."
+                "updatedContent":
+                  "type": "string"
+                  "description": "Updated content of the review, if any changes are made to the original review text."
+              "required":
+                - "reviewId"
+                - "status"
+      "responses":
+        "200":
+          "description": "Review status updated successfully."
+        "400":
+          "description": "Invalid request data."
+        "401":
+          "description": "Unauthorized."
+        "404":
+          "description": "Review not found."
+        "500":
+          "description": "Internal server error."
+    "delete":
+      "summary": "Delete a specific review"
+      "description": "Allows administrators to delete inappropriate or irrelevant reviews."
+      "tags":
+        - "Admin"
+      "security":
+        -
+          "BearerAuth": []
+      "parameters":
+        -
+          "name": "reviewId"
+          "in": "path"
+          "required": true
+          "description": "ID of the review to be deleted."
+          "schema":
+            "type": "integer"
+            "format": "int64"
+      "responses":
+        "204":
+          "description": "Review deleted successfully."
+        "401":
+          "description": "Unauthorized."
+        "404":
+          "description": "Review not found."
+        "500":
+          "description": "Internal server error."
+  "/api/admin/feedback":
+    "get":
+      "summary": "Retrieve a list of user feedback"
+      "description": "Lists all feedback submissions with filtering and pagination capabilities."
+      "tags":
+        - "Admin"
+      "security":
+        -
+          "BearerAuth": []
+      "parameters":
+        -
+          "name": "status"
+          "in": "query"
+          "required": false
+          "description": "Filter feedback by status (e.g., reviewed, pending)."
+          "schema":
+            "type": "string"
+            "enum":
+              - "reviewed"
+              - "pending"
+              - "resolved"
+        -
+          "name": "type"
+          "in": "query"
+          "required": false
+          "description": "Filter feedback by type (e.g., bug, feature request, comment)."
+          "schema":
+            "type": "string"
+            "enum":
+              - "bug"
+              - "feature_request"
+              - "comment"
+        -
+          "name": "page"
+          "in": "query"
+          "required": false
+          "description": "Pagination - page number."
+          "schema":
+            "type": "integer"
+            "format": "int32"
+        -
+          "name": "limit"
+          "in": "query"
+          "required": false
+          "description": "Pagination - number of feedback items per page."
+          "schema":
+            "type": "integer"
+            "format": "int32"
+      "responses":
+        "200":
+          "description": "List of feedback successfully retrieved."
+          "content":
+            "application/json":
+              "schema":
+                "type": "array"
+                "items":
+                  "type": "object"
+                  "properties":
+                    "feedbackId":
+                      "type": "integer"
+                      "format": "int64"
+                      "description": "Unique identifier for the feedback entry."
+                    "userId":
+                      "type": "integer"
+                      "format": "int64"
+                      "description": "Unique identifier for the user who submitted the feedback."
+                    "username":
+                      "type": "string"
+                      "description": "Username of the user who submitted the feedback."
+                    "submissionDate":
+                      "type": "string"
+                      "format": "date-time"
+                      "description": "The timestamp when the feedback was submitted."
+                    "type":
+                      "type": "string"
+                      "enum":
+                        - "bug"
+                        - "feature_request"
+                        - "comment"
+                      "description": "The category or type of feedback."
+                    "title":
+                      "type": "string"
+                      "description": "Brief title or headline for the feedback."
+                    "description":
+                      "type": "string"
+                      "description": "Detailed description of the feedback."
+                    "status":
+                      "type": "string"
+                      "enum":
+                        - "pending"
+                        - "reviewed"
+                        - "resolved"
+                      "description": "The current status of the feedback."
+                    "adminComment":
+                      "type": "string"
+                      "description": "Optional comment from the administrator in response to the feedback."
+                  "required":
+                    - "feedbackId"
+                    - "userId"
+                    - "submissionDate"
+                    - "type"
+                    - "title"
+                    - "description"
+                    - "status"
+        "401":
+          "description": "Unauthorized."
+        "500":
+          "description": "Internal server error."
+    "put":
+      "summary": "Update feedback details"
+      "description": "Allows administrators to update feedback status or add comments."
+      "tags":
+        - "Admin"
+      "security":
+        -
+          "BearerAuth": []
+      "requestBody":
+        "description": "Feedback update details"
+        "required": true
+        "content":
+          "application/json":
+            "schema":
+              "type": "object"
+              "properties":
+                "feedbackId":
+                  "type": "integer"
+                  "format": "int64"
+                  "description": "Unique identifier for the feedback entry being updated."
+                "status":
+                  "type": "string"
+                  "enum":
+                    - "pending"
+                    - "reviewed"
+                    - "resolved"
+                  "description": "Updated status for the feedback."
+                "adminComment":
+                  "type": "string"
+                  "description": "Comment or response from the administrator in relation to the feedback. This could be a resolution comment, feedback, or any other relevant note."
+              "required":
+                - "feedbackId"
+                - "status"
+      "responses":
+        "200":
+          "description": "Feedback updated successfully."
+        "400":
+          "description": "Invalid request data."
+        "401":
+          "description": "Unauthorized."
+        "404":
+          "description": "Feedback not found."
+        "500":
+          "description": "Internal server error."
+  "/api/admin/settings":
+    "get":
+      "summary": "Retrieve platform settings"
+      "description": "Fetches the current configuration and settings of the platform."
+      "tags":
+        - "Admin"
+      "security":
+        -
+          "BearerAuth": []
+      "responses":
+        "200":
+          "description": "Current platform settings successfully retrieved."
+          "content":
+            "application/json":
+              "schema":
+                "type": "object"
+                "properties":
+                  "siteTitle":
+                    "type": "string"
+                    "description": "The title of the e-commerce site."
+                  "siteDescription":
+                    "type": "string"
+                    "description": "A brief description or tagline for the platform."
+                  "maintenanceMode":
+                    "type": "boolean"
+                    "description": "Indicates if the site is in maintenance mode."
+                  "defaultCurrency":
+                    "type": "string"
+                    "description": "The default currency for product pricing and transactions."
+                  "paymentMethods":
+                    "type": "array"
+                    "items":
+                      "type": "string"
+                      "description": "Supported payment methods."
+                  "shippingConfig":
+                    "type": "object"
+                    "properties":
+                      "defaultProvider":
+                        "type": "string"
+                        "description": "Default shipping provider."
+                      "rates":
+                        "type": "array"
+                        "items":
+                          "type": "object"
+                          "properties":
+                            "region":
+                              "type": "string"
+                              "description": "Shipping region or zone."
+                            "price":
+                              "type": "number"
+                              "format": "float"
+                              "description": "Shipping rate for the specified region."
+                  "otherSettings":
+                    "type": "object"
+                    "additionalProperties": true
+                    "description": "Miscellaneous settings specific to the platform."
+                "required":
+                  - "siteTitle"
+                  - "siteDescription"
+        "401":
+          "description": "Unauthorized."
+        "500":
+          "description": "Internal server error."
+    "put":
+      "summary": "Update platform settings"
+      "description": "Allows administrators to modify and configure platform settings."
+      "tags":
+        - "Admin"
+      "security":
+        -
+          "BearerAuth": []
+      "requestBody":
+        "description": "Updated platform settings data."
+        "required": true
+        "content":
+          "application/json":
+            "schema":
+              "type": "object"
+              "properties":
+                "siteTitle":
+                  "type": "string"
+                  "description": "The title of the e-commerce site."
+                "siteDescription":
+                  "type": "string"
+                  "description": "A brief description or tagline for the platform."
+                "maintenanceMode":
+                  "type": "boolean"
+                  "description": "Flag to indicate if the site is in maintenance mode. True means the site is in maintenance mode, false means it's live."
+                "defaultCurrency":
+                  "type": "string"
+                  "description": "The default currency for product pricing and transactions."
+                "paymentMethods":
+                  "type": "array"
+                  "items":
+                    "type": "string"
+                    "description": "Supported payment methods (e.g., \"PayPal\", \"Credit Card\", \"Bitcoin\")."
+                "shippingConfig":
+                  "type": "object"
+                  "properties":
+                    "defaultProvider":
+                      "type": "string"
+                      "description": "Default shipping provider (e.g., \"FedEx\", \"UPS\")."
+                    "rates":
+                      "type": "array"
+                      "items":
+                        "type": "object"
+                        "properties":
+                          "region":
+                            "type": "string"
+                            "description": "Shipping region or zone."
+                          "price":
+                            "type": "number"
+                            "format": "float"
+                            "description": "Shipping rate for the specified region."
+                "otherSettings":
+                  "type": "object"
+                  "additionalProperties": true
+                  "description": "Any other miscellaneous settings that don't fit into the above categories."
+              "required":
+                - "siteTitle"
+                - "siteDescription"
+      "responses":
+        "200":
+          "description": "Platform settings updated successfully."
+        "400":
+          "description": "Invalid request data."
+        "401":
+          "description": "Unauthorized."
+        "500":
+          "description": "Internal server error."
+  "/api/admin/logs":
+    "get":
+      "summary": "Retrieve system logs"
+      "description": "Fetches logs based on filters like date range, log level, or specific events."
+      "tags":
+        - "Admin"
+      "security":
+        -
+          "BearerAuth": []
+      "parameters":
+        -
+          "name": "startDate"
+          "in": "query"
+          "required": false
+          "description": "Starting date to filter logs."
+          "schema":
+            "type": "string"
+            "format": "date"
+        -
+          "name": "endDate"
+          "in": "query"
+          "required": false
+          "description": "Ending date to filter logs."
+          "schema":
+            "type": "string"
+            "format": "date"
+        -
+          "name": "logLevel"
+          "in": "query"
+          "required": false
+          "description": "Level of log (e.g., INFO, ERROR, WARNING)."
+          "schema":
+            "type": "string"
+            "enum":
+              - "INFO"
+              - "ERROR"
+              - "WARNING"
+              - "DEBUG"
+        -
+          "name": "event"
+          "in": "query"
+          "required": false
+          "description": "Specific event to filter logs."
+          "schema":
+            "type": "string"
+      "responses":
+        "200":
+          "description": "List of logs successfully retrieved."
+          "content":
+            "application/json":
+              "schema":
+                "type": "array"
+                "items":
+                  "type": "object"
+                  "properties":
+                    "logId":
+                      "type": "integer"
+                      "format": "int64"
+                      "description": "Unique identifier for the log entry."
+                    "timestamp":
+                      "type": "string"
+                      "format": "date-time"
+                      "description": "The exact time when the event occurred."
+                    "logLevel":
+                      "type": "string"
+                      "enum":
+                        - "INFO"
+                        - "ERROR"
+                        - "WARNING"
+                        - "DEBUG"
+                      "description": "The severity or level of the log."
+                    "event":
+                      "type": "string"
+                      "description": "A brief description or identifier for the event or operation that triggered the log."
+                    "message":
+                      "type": "string"
+                      "description": "Detailed description of the event or any additional information."
+                    "metadata":
+                      "type": "object"
+                      "additionalProperties": true
+                      "description": "Any other relevant metadata associated with the log, such as request details, user information, or system state."
+                  "required":
+                    - "logId"
+                    - "timestamp"
+                    - "logLevel"
+                    - "event"
+                    - "message"
+        "401":
+          "description": "Unauthorized."
+        "500":
+          "description": "Internal server error."
+  "/api/admin/monitoring":
+    "get":
+      "summary": "Retrieve system monitoring data"
+      "description": "Fetches monitoring metrics based on specified filters like time range or specific metrics."
+      "tags":
+        - "Admin"
+      "security":
+        -
+          "BearerAuth": []
+      "parameters":
+        -
+          "name": "startTime"
+          "in": "query"
+          "required": false
+          "description": "Starting timestamp to filter monitoring data."
+          "schema":
+            "type": "string"
+            "format": "date-time"
+        -
+          "name": "endTime"
+          "in": "query"
+          "required": false
+          "description": "Ending timestamp to filter monitoring data."
+          "schema":
+            "type": "string"
+            "format": "date-time"
+        -
+          "name": "metric"
+          "in": "query"
+          "required": false
+          "description": "Specific metric to retrieve (e.g., \"CPU_Usage\", \"Response_Time\")."
+          "schema":
+            "type": "string"
+      "responses":
+        "200":
+          "description": "Monitoring data successfully retrieved."
+          "content":
+            "application/json":
+              "schema":
+                "type": "array"
+                "items":
+                  "type": "object"
+                  "properties":
+                    "metricId":
+                      "type": "integer"
+                      "format": "int64"
+                      "description": "Unique identifier for the metric entry."
+                    "metricName":
+                      "type": "string"
+                      "description": "Name of the monitoring metric (e.g., \"CPU_Usage\", \"Response_Time\", \"Memory_Usage\")."
+                    "timestamp":
+                      "type": "string"
+                      "format": "date-time"
+                      "description": "The exact time when the metric was measured."
+                    "value":
+                      "type": "number"
+                      "format": "float"
+                      "description": "The value of the monitoring metric, often a percentage, time in milliseconds, or other unit relevant to the metric."
+                    "unit":
+                      "type": "string"
+                      "description": "The unit of the metric value (e.g., \"%\", \"ms\", \"MB\")."
+                    "metadata":
+                      "type": "object"
+                      "additionalProperties": true
+                      "description": "Any other relevant metadata associated with the metric, such as resource details or related system information."
+                  "required":
+                    - "metricId"
+                    - "metricName"
+                    - "timestamp"
+                    - "value"
+                    - "unit"
+        "401":
+          "description": "Unauthorized."
+        "500":
+          "description": "Internal server error."
+  "/api/admin/content/pages":
+    "get":
+      "summary": "Retrieve a list of content pages"
+      "description": "Fetches a list of all static content pages available on the platform."
+      "tags":
+        - "Admin"
+      "security":
+        -
+          "BearerAuth": []
+      "responses":
+        "200":
+          "description": "List of content pages successfully retrieved."
+          "content":
+            "application/json":
+              "schema":
+                "type": "array"
+                "items":
+                  "type": "object"
+                  "properties":
+                    "pageId":
+                      "type": "integer"
+                      "format": "int64"
+                      "description": "Unique identifier for the content page."
+                    "title":
+                      "type": "string"
+                      "description": "The title or heading of the content page."
+                    "slug":
+                      "type": "string"
+                      "description": "URL-friendly version of the title used for routing (e.g., \"about-us\", \"privacy-policy\")."
+                    "content":
+                      "type": "string"
+                      "description": "The main content of the page, typically in HTML or Markdown format."
+                    "lastModified":
+                      "type": "string"
+                      "format": "date-time"
+                      "description": "Timestamp indicating the last time the page was updated."
+                    "author":
+                      "type": "string"
+                      "description": "The name or identifier of the person who last edited the page."
+                    "metaTags":
+                      "type": "array"
+                      "items":
+                        "type": "string"
+                      "description": "SEO-related meta tags associated with the page."
+                    "isPublished":
+                      "type": "boolean"
+                      "description": "Indicates whether the page is live and accessible to users or in a draft state."
+                  "required":
+                    - "pageId"
+                    - "title"
+                    - "slug"
+                    - "content"
+                    - "lastModified"
+        "401":
+          "description": "Unauthorized."
+        "500":
+          "description": "Internal server error."
+  "/api/admin/content/banners":
+    "get":
+      "summary": "Retrieve a list of promotional banners"
+      "description": "Fetches a list of all promotional banners currently on the platform."
+      "tags":
+        - "Admin"
+      "security":
+        -
+          "BearerAuth": []
+      "responses":
+        "200":
+          "description": "List of promotional banners successfully retrieved."
+          "content":
+            "application/json":
+              "schema":
+                "type": "array"
+                "items":
+                  "type": "object"
+                  "properties":
+                    "bannerId":
+                      "type": "integer"
+                      "format": "int64"
+                      "description": "Unique identifier for the promotional banner."
+                    "title":
+                      "type": "string"
+                      "description": "A short title or headline for the banner."
+                    "imageUrl":
+                      "type": "string"
+                      "description": "URL of the banner image."
+                    "linkUrl":
+                      "type": "string"
+                      "description": "URL to which the banner redirects when clicked."
+                    "displayDuration":
+                      "type": "integer"
+                      "format": "int32"
+                      "description": "Duration (in seconds) for which the banner should be displayed to the user."
+                    "startDate":
+                      "type": "string"
+                      "format": "date-time"
+                      "description": "Date and time when the banner starts being displayed."
+                    "endDate":
+                      "type": "string"
+                      "format": "date-time"
+                      "description": "Date and time when the banner stops being displayed."
+                    "position":
+                      "type": "string"
+                      "enum":
+                        - "TOP"
+                        - "MIDDLE"
+                        - "BOTTOM"
+                      "description": "The position on the webpage where the banner should be displayed."
+                    "isActive":
+                      "type": "boolean"
+                      "description": "Indicates whether the banner is currently active and being displayed to users."
+                  "required":
+                    - "bannerId"
+                    - "title"
+                    - "imageUrl"
+                    - "linkUrl"
+                    - "startDate"
+                    - "endDate"
+        "401":
+          "description": "Unauthorized."
+        "500":
+          "description": "Internal server error."
+    "post":
+      "summary": "Create a new promotional banner"
+      "description": "Allows administrators to add a new promotional banner."
+      "tags":
+        - "Admin"
+      "security":
+        -
+          "BearerAuth": []
+      "requestBody":
+        "description": "Data for the new promotional banner."
+        "required": true
+        "content":
+          "application/json":
+            "schema":
+              "type": "object"
+              "properties":
+                "title":
+                  "type": "string"
+                  "description": "A short title or headline for the banner."
+                "imageUrl":
+                  "type": "string"
+                  "description": "URL of the banner image."
+                "linkUrl":
+                  "type": "string"
+                  "description": "URL to which the banner redirects when clicked."
+                "displayDuration":
+                  "type": "integer"
+                  "format": "int32"
+                  "description": "Duration (in seconds) for which the banner should be displayed to the user."
+                "startDate":
+                  "type": "string"
+                  "format": "date-time"
+                  "description": "Date and time when the banner starts being displayed."
+                "endDate":
+                  "type": "string"
+                  "format": "date-time"
+                  "description": "Date and time when the banner stops being displayed."
+                "position":
+                  "type": "string"
+                  "enum":
+                    - "TOP"
+                    - "MIDDLE"
+                    - "BOTTOM"
+                  "description": "The position on the webpage where the banner should be displayed."
+                "isActive":
+                  "type": "boolean"
+                  "description": "Indicates whether the banner should start as active and be displayed to users."
+              "required":
+                - "title"
+                - "imageUrl"
+                - "linkUrl"
+                - "startDate"
+                - "endDate"
+      "responses":
+        "201":
+          "description": "Promotional banner created successfully."
+        "400":
+          "description": "Invalid request data."
+        "401":
+          "description": "Unauthorized."
+        "500":
+          "description": "Internal server error."
+  "/api/admin/affiliates":
+    "get":
+      "summary": "Retrieve a list of affiliates"
+      "description": "Fetches a list of all affiliates associated with the platform."
+      "tags":
+        - "Admin"
+      "security":
+        -
+          "BearerAuth": []
+      "responses":
+        "200":
+          "description": "List of affiliates successfully retrieved."
+          "content":
+            "application/json":
+              "schema":
+                "type": "array"
+                "items":
+                  "type": "object"
+                  "properties":
+                    "affiliateId":
+                      "type": "integer"
+                      "format": "int64"
+                      "description": "Unique identifier for the affiliate."
+                    "name":
+                      "type": "string"
+                      "description": "Full name or company name of the affiliate."
+                    "contactEmail":
+                      "type": "string"
+                      "format": "email"
+                      "description": "Contact email address for the affiliate."
+                    "referralCode":
+                      "type": "string"
+                      "description": "Unique code used by the affiliate for referrals."
+                    "registrationDate":
+                      "type": "string"
+                      "format": "date-time"
+                      "description": "Date and time when the affiliate was onboarded."
+                    "totalReferrals":
+                      "type": "integer"
+                      "format": "int32"
+                      "description": "Total number of referrals made by the affiliate."
+                    "successfulReferrals":
+                      "type": "integer"
+                      "format": "int32"
+                      "description": "Number of successful referrals that resulted in sales or signups."
+                    "commissionEarned":
+                      "type": "number"
+                      "format": "float"
+                      "description": "Total commission earned by the affiliate based on successful referrals."
+                    "isActive":
+                      "type": "boolean"
+                      "description": "Indicates whether the affiliate is currently active."
+                  "required":
+                    - "affiliateId"
+                    - "name"
+                    - "contactEmail"
+                    - "referralCode"
+                    - "registrationDate"
+        "401":
+          "description": "Unauthorized."
+        "500":
+          "description": "Internal server error."
+    "post":
+      "summary": "Add a new affiliate"
+      "description": "Registers a new affiliate partner with the platform."
+      "tags":
+        - "Admin"
+      "security":
+        -
+          "BearerAuth": []
+      "requestBody":
+        "description": "Data for the new affiliate."
+        "required": true
+        "content":
+          "application/json":
+            "schema":
+              "type": "object"
+              "properties":
+                "name":
+                  "type": "string"
+                  "description": "Full name or company name of the affiliate."
+                "contactEmail":
+                  "type": "string"
+                  "format": "email"
+                  "description": "Contact email address for the affiliate."
+                "referralCode":
+                  "type": "string"
+                  "description": "Unique code to be used by the affiliate for referrals. If not provided, the system could generate one."
+                "registrationDate":
+                  "type": "string"
+                  "format": "date-time"
+                  "description": "Date and time when the affiliate is onboarded. If not provided, the system could use the current date-time."
+                "isActive":
+                  "type": "boolean"
+                  "default": true
+                  "description": "Indicates whether the affiliate should start as active. Defaults to true if not provided."
+              "required":
+                - "name"
+                - "contactEmail"
+      "responses":
+        "201":
+          "description": "Affiliate added successfully."
+        "400":
+          "description": "Invalid request data."
+        "401":
+          "description": "Unauthorized."
+        "500":
+          "description": "Internal server error."
+  "/api/admin/partnerships":
+    "get":
+      "summary": "Retrieve a list of business partnerships"
+      "description": "Fetches a list of all business partnerships associated with the platform."
+      "tags":
+        - "Admin"
+      "security":
+        -
+          "BearerAuth": []
+      "responses":
+        "200":
+          "description": "List of partnerships successfully retrieved."
+          "content":
+            "application/json":
+              "schema":
+                "type": "array"
+                "items":
+                  "type": "object"
+                  "properties":
+                    "partnershipId":
+                      "type": "integer"
+                      "format": "int64"
+                      "description": "Unique identifier for the partnership."
+                    "partnerName":
+                      "type": "string"
+                      "description": "Name of the partner organization or business."
+                    "contactPerson":
+                      "type": "string"
+                      "description": "Name of the primary contact person at the partner organization."
+                    "contactEmail":
+                      "type": "string"
+                      "format": "email"
+                      "description": "Email address for communication with the partner."
+                    "partnershipType":
+                      "type": "string"
+                      "enum":
+                        - "Collaboration"
+                        - "Integration"
+                        - "Sponsorship"
+                        - "Other"
+                      "description": "Type or nature of the partnership."
+                    "startDate":
+                      "type": "string"
+                      "format": "date-time"
+                      "description": "Date and time when the partnership agreement started."
+                    "endDate":
+                      "type": "string"
+                      "format": "date-time"
+                      "description": "Date and time when the partnership agreement is set to end."
+                    "terms":
+                      "type": "string"
+                      "description": "Detailed terms and conditions of the partnership."
+                    "benefits":
+                      "type": "string"
+                      "description": "Benefits accrued from the partnership, for both parties."
+                    "isActive":
+                      "type": "boolean"
+                      "description": "Indicates whether the partnership is currently active."
+                  "required":
+                    - "partnershipId"
+                    - "partnerName"
+                    - "contactEmail"
+                    - "partnershipType"
+        "401":
+          "description": "Unauthorized."
+        "500":
+          "description": "Internal server error."
+    "post":
+      "summary": "Add a new business partnership"
+      "description": "Registers a new business partnership or collaboration with the platform."
+      "tags":
+        - "Admin"
+      "security":
+        -
+          "BearerAuth": []
+      "requestBody":
+        "description": "Data for the new partnership."
+        "required": true
+        "content":
+          "application/json":
+            "schema":
+              "type": "object"
+              "properties":
+                "partnerName":
+                  "type": "string"
+                  "description": "Name of the partner organization or business."
+                "contactPerson":
+                  "type": "string"
+                  "description": "Name of the primary contact person at the partner organization."
+                "contactEmail":
+                  "type": "string"
+                  "format": "email"
+                  "description": "Email address for communication with the partner."
+                "partnershipType":
+                  "type": "string"
+                  "enum":
+                    - "Collaboration"
+                    - "Integration"
+                    - "Sponsorship"
+                    - "Other"
+                  "description": "Type or nature of the partnership."
+                "startDate":
+                  "type": "string"
+                  "format": "date-time"
+                  "description": "Date and time when the partnership agreement starts."
+                "endDate":
+                  "type": "string"
+                  "format": "date-time"
+                  "description": "Date and time when the partnership agreement is set to end. Can be optional if the end date is not determined."
+                "terms":
+                  "type": "string"
+                  "description": "Detailed terms and conditions of the partnership."
+                "benefits":
+                  "type": "string"
+                  "description": "Benefits accrued from the partnership, for both parties."
+                "isActive":
+                  "type": "boolean"
+                  "default": true
+                  "description": "Indicates whether the partnership should start as active. Defaults to true if not provided."
+              "required":
+                - "partnerName"
+                - "contactEmail"
+                - "partnershipType"
+                - "startDate"
+      "responses":
+        "201":
+          "description": "Partnership added successfully."
+        "400":
+          "description": "Invalid request data."
+        "401":
+          "description": "Unauthorized."
+        "500":
+          "description": "Internal server error."
+"components":
+  "securitySchemes":
+    "BearerAuth":
+      "type": "http"
+      "scheme": "bearer"
+      "bearerFormat": "JWT"
+  "schemas":
+    "UserRegistration":
+      "type": "object"
+      "properties":
+        "username":
+          "type": "string"
+        "email":
+          "type": "string"
+          "format": "email"
+        "password":
+          "type": "string"
+          "format": "password"
+    "UserLogin":
+      "type": "object"
+      "properties":
+        "email":
+          "type": "string"
+          "format": "email"
+        "password":
+          "type": "string"
+          "format": "password"
+    "UserProfile":
+      "type": "object"
+      "properties":
+        "username":
+          "type": "string"
+        "email":
+          "type": "string"
+          "format": "email"
+    "Product":
+      "type": "object"
+      "properties":
+        "name":
+          "type": "string"
+        "description":
+          "type": "string"
+        "price":
+          "type": "number"
+          "format": "float"
+    "Notification":
+      "type": "object"
+      "properties":
+        "id":
+          "type": "integer"
+          "format": "int64"
+          "description": "Unique identifier for the notification."
+        "title":
+          "type": "string"
+          "description": "Title or header of the notification."
+        "message":
+          "type": "string"
+          "description": "Detailed message or content of the notification."
+        "date":
+          "type": "string"
+          "format": "date-time"
+          "description": "Date and time when the notification was created."
+        "status":
+          "type": "string"
+          "enum":
+            - "unread"
+            - "read"
+          "description": "Current status of the notification."
+    "Order":
+      "type": "object"
+      "properties":
+        "id":
+          "type": "integer"
+          "format": "int64"
+          "description": "Unique identifier for the order."
+        "orderDate":
+          "type": "string"
+          "format": "date-time"
+          "description": "Date and time when the order was placed."
+        "status":
+          "type": "string"
+          "enum":
+            - "pending"
+            - "processing"
+            - "shipped"
+            - "completed"
+            - "canceled"
+          "description": "Current status of the order."
+        "items":
+          "type": "array"
+          "items":
+            "type": "object"
+            "properties":
+              "productId":
+                "type": "integer"
+                "format": "int64"
+                "description": "Unique identifier for the product."
+              "productName":
+                "type": "string"
+                "description": "Name of the product."
+              "quantity":
+                "type": "integer"
+                "format": "int32"
+                "description": "Quantity of the product ordered."
+              "unitPrice":
+                "type": "number"
+                "format": "float"
+                "description": "Price of the product per unit."
+              "total":
+                "type": "number"
+                "format": "float"
+                "description": "Total price for this item (unitPrice * quantity)."
+          "description": "List of products/items in the order."
+        "totalAmount":
+          "type": "number"
+          "format": "float"
+          "description": "Total amount of the order."
+        "shippingAddress":
+          "type": "object"
+          "properties":
+            "street":
+              "type": "string"
+              "description": "Street address."
+            "city":
+              "type": "string"
+              "description": "City name."
+            "state":
+              "type": "string"
+              "description": "State or region."
+            "postalCode":
+              "type": "string"
+              "description": "Postal or ZIP code."
+            "country":
+              "type": "string"
+              "description": "Country name."
+        "paymentMethod":
+          "type": "string"
+          "description": "Payment method used for the order (e.g., \"Credit Card\", \"PayPal\")."
+        "trackingNumber":
+          "type": "string"
+          "description": "Tracking number for shipped orders."
+    "OrderItem":
+      "type": "object"
+      "properties":
+        "productId":
+          "type": "integer"
+          "format": "int64"
+          "description": "Unique identifier for the product."
+        "productName":
+          "type": "string"
+          "description": "Name of the product."
+        "quantity":
+          "type": "integer"
+          "format": "int32"
+          "description": "Quantity of the product ordered."
+        "unitPrice":
+          "type": "number"
+          "format": "float"
+          "description": "Price of the product per unit."
+        "total":
+          "type": "number"
+          "format": "float"
+          "description": "Total price for this item (unitPrice * quantity)."
+    "Address":
+      "type": "object"
+      "properties":
+        "street":
+          "type": "string"
+          "description": "Street address."
+        "city":
+          "type": "string"
+          "description": "City name."
+        "state":
+          "type": "string"
+          "description": "State or region."
+        "postalCode":
+          "type": "string"
+          "description": "Postal or ZIP code."
+        "country":
+          "type": "string"
+          "description": "Country name."
+    "Wishlist":
+      "type": "object"
+      "properties":
+        "id":
+          "type": "integer"
+          "format": "int64"
+          "description": "Unique identifier for the wishlist."
+        "name":
+          "type": "string"
+          "description": "Name or title of the wishlist."
+        "description":
+          "type": "string"
+          "description": "A brief description or note for the wishlist."
+        "items":
+          "type": "array"
+          "items":
+            "type": "object"
+            "properties":
+              "productId":
+                "type": "integer"
+                "format": "int64"
+                "description": "Unique identifier for the product."
+              "productName":
+                "type": "string"
+                "description": "Name of the product."
+          "description": "List of products/items in the wishlist."
+    "ProductReference":
+      "type": "object"
+      "properties":
+        "productId":
+          "type": "integer"
+          "format": "int64"
+          "description": "Unique identifier for the product."
+        "productName":
+          "type": "string"
+          "description": "Name of the product."
+    "Review":
+      "type": "object"
+      "properties":
+        "id":
+          "type": "integer"
+          "format": "int64"
+          "description": "Unique identifier for the review."
+        "productId":
+          "type": "integer"
+          "format": "int64"
+          "description": "Unique identifier for the reviewed product."
+        "title":
+          "type": "string"
+          "description": "Title or header of the review."
+        "content":
+          "type": "string"
+          "description": "Detailed content of the review."
+        "rating":
+          "type": "integer"
+          "format": "int32"
+          "minimum": 1
+          "maximum": 5
+          "description": "Rating given to the product, usually from 1 to 5."
+        "date":
+          "type": "string"
+          "format": "date-time"
+          "description": "Date and time when the review was submitted."
+    "ReviewInput":
+      "type": "object"
+      "properties":
+        "productId":
+          "type": "integer"
+          "format": "int64"
+          "description": "Unique identifier for the reviewed product."
+        "title":
+          "type": "string"
+          "description": "Title or header of the review."
+        "content":
+          "type": "string"
+          "description": "Detailed content of the review."
+        "rating":
+          "type": "integer"
+          "format": "int32"
+          "minimum": 1
+          "maximum": 5
+          "description": "Rating given to the product, usually from 1 to 5."
+    "Category":
+      "type": "object"
+      "properties":
+        "id":
+          "type": "integer"
+          "format": "int64"
+          "description": "Unique identifier for the category."
+        "name":
+          "type": "string"
+          "description": "Name of the category."
+        "description":
+          "type": "string"
+          "description": "A brief description of the category."
+        "parentCategoryId":
+          "type": "integer"
+          "format": "int64"
+          "description": "Identifier for the parent category (if it's a sub-category)."
+    "CategoryInput":
+      "type": "object"
+      "properties":
+        "name":
+          "type": "string"
+          "description": "Name of the category."
+        "description":
+          "type": "string"
+          "description": "A brief description of the category."
+        "parentCategoryId":
+          "type": "integer"
+          "format": "int64"
+          "description": "Identifier for the parent category (if it's a sub-category)."
+    "ProductImage":
+      "type": "object"
+      "properties":
+        "id":
+          "type": "string"
+          "description": "Unique identifier for the image."
+        "url":
+          "type": "string"
+          "format": "uri"
+          "description": "URL where the image can be accessed."
+        "altText":
+          "type": "string"
+          "description": "Alternative text for the image, useful for accessibility."
+        "uploadedAt":
+          "type": "string"
+          "format": "date-time"
+          "description": "Date and time when the image was uploaded."
+    "ProductInventory":
+      "type": "object"
+      "properties":
+        "stockLevel":
+          "type": "integer"
+          "description": "Current number of items in stock."
+        "status":
+          "type": "string"
+          "enum":
+            - "in_stock"
+            - "low_stock"
+            - "out_of_stock"
+          "description": "Current inventory status."
+        "lastUpdated":
+          "type": "string"
+          "format": "date-time"
+          "description": "Date and time when the inventory was last updated."
+    "ProductInventoryUpdate":
+      "type": "object"
+      "properties":
+        "stockLevel":
+          "type": "integer"
+          "description": "Updated number of items in stock."
+        "status":
+          "type": "string"
+          "enum":
+            - "in_stock"
+            - "low_stock"
+            - "out_of_stock"
+          "description": "Updated inventory status."
+    "ProductPriceHistoryItem":
+      "type": "object"
+      "properties":
+        "price":
+          "type": "number"
+          "format": "float"
+          "description": "The price of the product at a specific point in time."
+        "effectiveDate":
+          "type": "string"
+          "format": "date-time"
+          "description": "Date and time when this price became effective."
+        "reason":
+          "type": "string"
+          "description": "Optional field denoting the reason for the price change (e.g., seasonal sale, supplier price change)."
+    "ProductPromotion":
+      "type": "object"
+      "properties":
+        "promotionId":
+          "type": "string"
+          "description": "Unique identifier for the promotion."
+        "name":
+          "type": "string"
+          "description": "Name or title of the promotion."
+        "description":
+          "type": "string"
+          "description": "Detailed description of the promotion."
+        "discountType":
+          "type": "string"
+          "enum":
+            - "percentage"
+            - "fixed_amount"
+          "description": "Type of discount (percentage off or a fixed amount off)."
+        "discountValue":
+          "type": "number"
+          "format": "float"
+          "description": "Value of the discount, based on the discountType."
+        "startDate":
+          "type": "string"
+          "format": "date-time"
+          "description": "Date and time when the promotion began."
+        "endDate":
+          "type": "string"
+          "format": "date-time"
+          "description": "Date and time when the promotion ended or is set to end."
+        "isActive":
+          "type": "boolean"
+          "description": "Flag indicating if the promotion is currently active."
+    "ProductUpdate":
+      "type": "object"
+      "properties":
+        "productId":
+          "type": "integer"
+          "description": "ID of the product to be updated."
+        "name":
+          "type": "string"
+          "description": "Updated product name (if changed)."
+        "price":
+          "type": "number"
+          "format": "float"
+          "description": "Updated price (if changed)."
+        "inventory":
+          "type": "integer"
+          "description": "Updated inventory count (if changed)."
+        "description":
+          "type": "string"
+          "description": "Updated product description (if changed)."
+    "User":
+      "type": "object"
+      "properties":
+        "userId":
+          "type": "integer"
+          "format": "int64"
+          "description": "Unique identifier for the user."
+        "username":
+          "type": "string"
+          "description": "Unique username used for login."
+        "email":
+          "type": "string"
+          "format": "email"
+          "description": "Email address of the user."
+        "firstName":
+          "type": "string"
+          "description": "First name of the user."
+        "lastName":
+          "type": "string"
+          "description": "Last name of the user."
+        "dateRegistered":
+          "type": "string"
+          "format": "date-time"
+          "description": "Date and time when the user registered."
+        "lastLogin":
+          "type": "string"
+          "format": "date-time"
+          "description": "Date and time of the user's last successful login."
+        "role":
+          "type": "string"
+          "description": "Role or roles assigned to the user. This could be an array if users can have multiple roles."
+        "isActive":
+          "type": "boolean"
+          "default": true
+          "description": "Flag indicating if the user's account is active."
+        "avatarUrl":
+          "type": "string"
+          "format": "uri"
+          "description": "URL to the user's avatar or profile picture (if any)."
+        "address":
+          "type": "string"
+          "description": "Physical address of the user (if provided)."
+        "phone":
+          "type": "string"
+          "description": "Contact phone number for the user."
+      "required":
+        - "userId"
+        - "username"
+        - "email"
+        - "firstName"
+        - "lastName"
+    "UserUpdate":
+      "type": "object"
+      "properties":
+        "username":
+          "type": "string"
+          "description": "Updated username. It should remain unique."
+        "email":
+          "type": "string"
+          "format": "email"
+          "description": "Updated email address."
+        "firstName":
+          "type": "string"
+          "description": "Updated first name."
+        "lastName":
+          "type": "string"
+          "description": "Updated last name."
+        "role":
+          "type": "string"
+          "description": "Updated role or roles. This could be an array if users can have multiple roles."
+        "isActive":
+          "type": "boolean"
+          "description": "Flag indicating if the user's account should be set to active or inactive."
+        "avatarUrl":
+          "type": "string"
+          "format": "uri"
+          "description": "Updated URL to the user's avatar or profile picture."
+        "address":
+          "type": "string"
+          "description": "Updated physical address of the user."
+        "phone":
+          "type": "string"
+          "description": "Updated contact phone number."
+      "minProperties": 1
+      "additionalProperties": false
+    "InventoryUpdate":
+      "type": "object"
+      "properties":
+        "productId":
+          "type": "integer"
+          "format": "int64"
+          "description": "Unique identifier for the product."
+        "currentStock":
+          "type": "integer"
+          "description": "The updated stock level for the product."
+        "restockDate":
+          "type": "string"
+          "format": "date-time"
+          "description": "Optional date and time when the product was restocked."
+        "threshold":
+          "type": "integer"
+          "description": "Updated restock threshold. When the stock drops below this value, a restock might be necessary."
+        "notes":
+          "type": "string"
+          "description": "Any additional notes or comments about the inventory update."
+      "required":
+        - "productId"
+        - "currentStock"
+    "OrderUpdate":
+      "type": "object"
+      "properties":
+        "status":
+          "type": "string"
+          "enum":
+            - "pending"
+            - "processed"
+            - "shipped"
+            - "completed"
+            - "canceled"
+            - "returned"
+          "description": "The updated status of the order."
+        "trackingNumber":
+          "type": "string"
+          "description": "If the order is shipped, this field can be updated with the tracking number for the shipment."
+        "estimatedDeliveryDate":
+          "type": "string"
+          "format": "date-time"
+          "description": "An updated estimated delivery date for the order."
+        "notes":
+          "type": "string"
+          "description": "Any additional administrative notes or comments about the order."
+        "cancelReason":
+          "type": "string"
+          "description": "If the order is canceled, a reason can be provided here."
+        "returnReason":
+          "type": "string"
+          "description": "If the order is returned, a reason can be provided here."
+      "required":
+        - "status"
+    "InventoryItem":
+      "type": "object"
+      "properties":
+        "productId":
+          "type": "integer"
+          "format": "int64"
+          "description": "Unique identifier for the product."
+        "productName":
+          "type": "string"
+          "description": "Name of the product."
+        "currentStock":
+          "type": "integer"
+          "description": "The current stock level for the product."
+        "restockThreshold":
+          "type": "integer"
+          "description": "The threshold at which a restock alert is triggered. When the current stock drops below this value, a restock might be necessary."
+        "lastRestockDate":
+          "type": "string"
+          "format": "date-time"
+          "description": "The date and time when the product was last restocked."
+        "nextRestockDate":
+          "type": "string"
+          "format": "date-time"
+          "description": "Estimated date and time for the next restocking, if applicable."
+        "supplier":
+          "type": "string"
+          "description": "The supplier or manufacturer of the product."
+        "notes":
+          "type": "string"
+          "description": "Any additional notes or comments about the inventory item."
+      "required":
+        - "productId"
+        - "productName"
+        - "currentStock"
+    "PromotionUpdate":
+      "type": "object"
+      "properties":
+        "promotionId":
+          "type": "integer"
+          "format": "int64"
+          "description": "Unique identifier for the promotion. This is typically used for reference and not for update purposes."
+        "name":
+          "type": "string"
+          "description": "Updated name or title of the promotion."
+        "type":
+          "type": "string"
+          "enum":
+            - "percentage"
+            - "flat_discount"
+            - "buy_one_get_one"
+            - "other"
+          "description": "Type of promotion, e.g., percentage discount, flat discount, etc."
+        "value":
+          "type": "number"
+          "description": "The value associated with the promotion. For example, if it's a percentage discount, this might be \"10\" for 10%."
+        "startDate":
+          "type": "string"
+          "format": "date-time"
+          "description": "Updated start date and time for when the promotion becomes active."
+        "endDate":
+          "type": "string"
+          "format": "date-time"
+          "description": "Updated end date and time for when the promotion expires."
+        "applicableProducts":
+          "type": "array"
+          "items":
+            "type": "integer"
+            "format": "int64"
+          "description": "List of product IDs to which the promotion is applicable. If empty, it might be applicable to all products or specific categories."
+        "notes":
+          "type": "string"
+          "description": "Any additional notes or updates about the promotion."
+      "minProperties": 1
+      "additionalProperties": false
+    "Promotion":
+      "type": "object"
+      "properties":
+        "promotionId":
+          "type": "integer"
+          "format": "int64"
+          "description": "Unique identifier for the promotion."
+        "name":
+          "type": "string"
+          "description": "Name or title of the promotion."
+        "type":
+          "type": "string"
+          "enum":
+            - "percentage"
+            - "flat_discount"
+            - "buy_one_get_one"
+            - "other"
+          "description": "Type of promotion, e.g., percentage discount, flat discount, etc."
+        "value":
+          "type": "number"
+          "description": "The value associated with the promotion. For example, if it's a percentage discount, this might be \"10\" for 10%."
+        "startDate":
+          "type": "string"
+          "format": "date-time"
+          "description": "Start date and time for when the promotion becomes active."
+        "endDate":
+          "type": "string"
+          "format": "date-time"
+          "description": "End date and time for when the promotion expires."
+        "applicableProducts":
+          "type": "array"
+          "items":
+            "type": "integer"
+            "format": "int64"
+          "description": "List of product IDs to which the promotion is applicable. If empty, it might be applicable to all products or specific categories."
+        "notes":
+          "type": "string"
+          "description": "Any additional notes or details about the promotion."
+        "createdDate":
+          "type": "string"
+          "format": "date-time"
+          "description": "The date and time when the promotion was created."
+        "modifiedDate":
+          "type": "string"
+          "format": "date-time"
+          "description": "The last date and time when the promotion was updated."
+      "required":
+        - "promotionId"
+        - "name"
+        - "type"
+        - "value"
+        - "startDate"
+        - "endDate"
+    "SalesReport":
+      "type": "object"
+      "properties":
+        "startDate":
+          "type": "string"
+          "format": "date"
+          "description": "The start date for the report period."
+        "endDate":
+          "type": "string"
+          "format": "date"
+          "description": "The end date for the report period."
+        "totalSales":
+          "type": "integer"
+          "description": "Total number of sales/orders during the report period."
+        "totalRevenue":
+          "type": "number"
+          "format": "float"
+          "description": "Total revenue generated during the report period."
+        "averageOrderValue":
+          "type": "number"
+          "format": "float"
+          "description": "The average value of orders during the report period."
+        "topSellingProducts":
+          "type": "array"
+          "items":
+            "type": "object"
+            "properties":
+              "productId":
+                "type": "integer"
+                "format": "int64"
+                "description": "Unique identifier for the product."
+              "productName":
+                "type": "string"
+                "description": "Name of the product."
+              "quantitySold":
+                "type": "integer"
+                "description": "Total quantity of this product sold during the report period."
+        "leastSellingProducts":
+          "type": "array"
+          "items":
+            "type": "object"
+            "properties":
+              "productId":
+                "type": "integer"
+                "format": "int64"
+                "description": "Unique identifier for the product."
+              "productName":
+                "type": "string"
+                "description": "Name of the product."
+              "quantitySold":
+                "type": "integer"
+                "description": "Total quantity of this product sold during the report period."
+        "dailyBreakdown":
+          "type": "array"
+          "items":
+            "type": "object"
+            "properties":
+              "date":
+                "type": "string"
+                "format": "date"
+                "description": "Specific date in the report period."
+              "sales":
+                "type": "integer"
+                "description": "Number of sales on that date."
+              "revenue":
+                "type": "number"
+                "format": "float"
+                "description": "Revenue generated on that date."
+      "required":
+        - "startDate"
+        - "endDate"
+        - "totalSales"
+        - "totalRevenue"
+        - "averageOrderValue"
+    "UserActivityReport":
+      "type": "object"
+      "properties":
+        "startDate":
+          "type": "string"
+          "format": "date"
+          "description": "The start date for the report period."
+        "endDate":
+          "type": "string"
+          "format": "date"
+          "description": "The end date for the report period."
+        "totalUsers":
+          "type": "integer"
+          "description": "Total number of registered users on the platform."
+        "activeUsers":
+          "type": "integer"
+          "description": "Number of users who were active during the report period."
+        "averageSessionDuration":
+          "type": "number"
+          "format": "float"
+          "description": "Average time (in minutes) a user spends on the platform per session."
+        "topVisitedPages":
+          "type": "array"
+          "items":
+            "type": "object"
+            "properties":
+              "pageName":
+                "type": "string"
+                "description": "Name or identifier of the page."
+              "visitCount":
+                "type": "integer"
+                "description": "Number of visits to this page during the report period."
+        "dailyLogins":
+          "type": "array"
+          "items":
+            "type": "object"
+            "properties":
+              "date":
+                "type": "string"
+                "format": "date"
+                "description": "Specific date in the report period."
+              "loginCount":
+                "type": "integer"
+                "description": "Number of user logins on that date."
+      "required":
+        - "startDate"
+        - "endDate"
+        - "totalUsers"
+        - "activeUsers"
+        - "averageSessionDuration"
+    "ReviewUpdate":
+      "type": "object"
+      "properties":
+        "reviewId":
+          "type": "integer"
+          "format": "int64"
+          "description": "Unique identifier for the review being updated."
+        "status":
+          "type": "string"
+          "enum":
+            - "approved"
+            - "pending"
+            - "rejected"
+          "description": "The new status for the review."
+        "adminComment":
+          "type": "string"
+          "description": "Optional comment by the administrator regarding the update (e.g., reason for rejection)."
+        "updatedContent":
+          "type": "string"
+          "description": "Updated content of the review, if any changes are made to the original review text."
+      "required":
+        - "reviewId"
+        - "status"
+    "Feedback":
+      "type": "object"
+      "properties":
+        "feedbackId":
+          "type": "integer"
+          "format": "int64"
+          "description": "Unique identifier for the feedback entry."
+        "userId":
+          "type": "integer"
+          "format": "int64"
+          "description": "Unique identifier for the user who submitted the feedback."
+        "username":
+          "type": "string"
+          "description": "Username of the user who submitted the feedback."
+        "submissionDate":
+          "type": "string"
+          "format": "date-time"
+          "description": "The timestamp when the feedback was submitted."
+        "type":
+          "type": "string"
+          "enum":
+            - "bug"
+            - "feature_request"
+            - "comment"
+          "description": "The category or type of feedback."
+        "title":
+          "type": "string"
+          "description": "Brief title or headline for the feedback."
+        "description":
+          "type": "string"
+          "description": "Detailed description of the feedback."
+        "status":
+          "type": "string"
+          "enum":
+            - "pending"
+            - "reviewed"
+            - "resolved"
+          "description": "The current status of the feedback."
+        "adminComment":
+          "type": "string"
+          "description": "Optional comment from the administrator in response to the feedback."
+      "required":
+        - "feedbackId"
+        - "userId"
+        - "submissionDate"
+        - "type"
+        - "title"
+        - "description"
+        - "status"
+    "FeedbackUpdate":
+      "type": "object"
+      "properties":
+        "feedbackId":
+          "type": "integer"
+          "format": "int64"
+          "description": "Unique identifier for the feedback entry being updated."
+        "status":
+          "type": "string"
+          "enum":
+            - "pending"
+            - "reviewed"
+            - "resolved"
+          "description": "Updated status for the feedback."
+        "adminComment":
+          "type": "string"
+          "description": "Comment or response from the administrator in relation to the feedback. This could be a resolution comment, feedback, or any other relevant note."
+      "required":
+        - "feedbackId"
+        - "status"
+    "PlatformSettingsUpdate":
+      "type": "object"
+      "properties":
+        "siteTitle":
+          "type": "string"
+          "description": "The title of the e-commerce site."
+        "siteDescription":
+          "type": "string"
+          "description": "A brief description or tagline for the platform."
+        "maintenanceMode":
+          "type": "boolean"
+          "description": "Flag to indicate if the site is in maintenance mode. True means the site is in maintenance mode, false means it's live."
+        "defaultCurrency":
+          "type": "string"
+          "description": "The default currency for product pricing and transactions."
+        "paymentMethods":
+          "type": "array"
+          "items":
+            "type": "string"
+            "description": "Supported payment methods (e.g., \"PayPal\", \"Credit Card\", \"Bitcoin\")."
+        "shippingConfig":
+          "type": "object"
+          "properties":
+            "defaultProvider":
+              "type": "string"
+              "description": "Default shipping provider (e.g., \"FedEx\", \"UPS\")."
+            "rates":
+              "type": "array"
+              "items":
+                "type": "object"
+                "properties":
+                  "region":
+                    "type": "string"
+                    "description": "Shipping region or zone."
+                  "price":
+                    "type": "number"
+                    "format": "float"
+                    "description": "Shipping rate for the specified region."
+        "otherSettings":
+          "type": "object"
+          "additionalProperties": true
+          "description": "Any other miscellaneous settings that don't fit into the above categories."
+      "required":
+        - "siteTitle"
+        - "siteDescription"
+    "PlatformSettings":
+      "type": "object"
+      "properties":
+        "siteTitle":
+          "type": "string"
+          "description": "The title of the e-commerce site."
+        "siteDescription":
+          "type": "string"
+          "description": "A brief description or tagline for the platform."
+        "maintenanceMode":
+          "type": "boolean"
+          "description": "Indicates if the site is in maintenance mode."
+        "defaultCurrency":
+          "type": "string"
+          "description": "The default currency for product pricing and transactions."
+        "paymentMethods":
+          "type": "array"
+          "items":
+            "type": "string"
+            "description": "Supported payment methods."
+        "shippingConfig":
+          "type": "object"
+          "properties":
+            "defaultProvider":
+              "type": "string"
+              "description": "Default shipping provider."
+            "rates":
+              "type": "array"
+              "items":
+                "type": "object"
+                "properties":
+                  "region":
+                    "type": "string"
+                    "description": "Shipping region or zone."
+                  "price":
+                    "type": "number"
+                    "format": "float"
+                    "description": "Shipping rate for the specified region."
+        "otherSettings":
+          "type": "object"
+          "additionalProperties": true
+          "description": "Miscellaneous settings specific to the platform."
+      "required":
+        - "siteTitle"
+        - "siteDescription"
+    "SystemLog":
+      "type": "object"
+      "properties":
+        "logId":
+          "type": "integer"
+          "format": "int64"
+          "description": "Unique identifier for the log entry."
+        "timestamp":
+          "type": "string"
+          "format": "date-time"
+          "description": "The exact time when the event occurred."
+        "logLevel":
+          "type": "string"
+          "enum":
+            - "INFO"
+            - "ERROR"
+            - "WARNING"
+            - "DEBUG"
+          "description": "The severity or level of the log."
+        "event":
+          "type": "string"
+          "description": "A brief description or identifier for the event or operation that triggered the log."
+        "message":
+          "type": "string"
+          "description": "Detailed description of the event or any additional information."
+        "metadata":
+          "type": "object"
+          "additionalProperties": true
+          "description": "Any other relevant metadata associated with the log, such as request details, user information, or system state."
+      "required":
+        - "logId"
+        - "timestamp"
+        - "logLevel"
+        - "event"
+        - "message"
+    "MonitoringMetric":
+      "type": "object"
+      "properties":
+        "metricId":
+          "type": "integer"
+          "format": "int64"
+          "description": "Unique identifier for the metric entry."
+        "metricName":
+          "type": "string"
+          "description": "Name of the monitoring metric (e.g., \"CPU_Usage\", \"Response_Time\", \"Memory_Usage\")."
+        "timestamp":
+          "type": "string"
+          "format": "date-time"
+          "description": "The exact time when the metric was measured."
+        "value":
+          "type": "number"
+          "format": "float"
+          "description": "The value of the monitoring metric, often a percentage, time in milliseconds, or other unit relevant to the metric."
+        "unit":
+          "type": "string"
+          "description": "The unit of the metric value (e.g., \"%\", \"ms\", \"MB\")."
+        "metadata":
+          "type": "object"
+          "additionalProperties": true
+          "description": "Any other relevant metadata associated with the metric, such as resource details or related system information."
+      "required":
+        - "metricId"
+        - "metricName"
+        - "timestamp"
+        - "value"
+        - "unit"
+    "ContentPage":
+      "type": "object"
+      "properties":
+        "pageId":
+          "type": "integer"
+          "format": "int64"
+          "description": "Unique identifier for the content page."
+        "title":
+          "type": "string"
+          "description": "The title or heading of the content page."
+        "slug":
+          "type": "string"
+          "description": "URL-friendly version of the title used for routing (e.g., \"about-us\", \"privacy-policy\")."
+        "content":
+          "type": "string"
+          "description": "The main content of the page, typically in HTML or Markdown format."
+        "lastModified":
+          "type": "string"
+          "format": "date-time"
+          "description": "Timestamp indicating the last time the page was updated."
+        "author":
+          "type": "string"
+          "description": "The name or identifier of the person who last edited the page."
+        "metaTags":
+          "type": "array"
+          "items":
+            "type": "string"
+          "description": "SEO-related meta tags associated with the page."
+        "isPublished":
+          "type": "boolean"
+          "description": "Indicates whether the page is live and accessible to users or in a draft state."
+      "required":
+        - "pageId"
+        - "title"
+        - "slug"
+        - "content"
+        - "lastModified"
+    "Banner":
+      "type": "object"
+      "properties":
+        "bannerId":
+          "type": "integer"
+          "format": "int64"
+          "description": "Unique identifier for the promotional banner."
+        "title":
+          "type": "string"
+          "description": "A short title or headline for the banner."
+        "imageUrl":
+          "type": "string"
+          "description": "URL of the banner image."
+        "linkUrl":
+          "type": "string"
+          "description": "URL to which the banner redirects when clicked."
+        "displayDuration":
+          "type": "integer"
+          "format": "int32"
+          "description": "Duration (in seconds) for which the banner should be displayed to the user."
+        "startDate":
+          "type": "string"
+          "format": "date-time"
+          "description": "Date and time when the banner starts being displayed."
+        "endDate":
+          "type": "string"
+          "format": "date-time"
+          "description": "Date and time when the banner stops being displayed."
+        "position":
+          "type": "string"
+          "enum":
+            - "TOP"
+            - "MIDDLE"
+            - "BOTTOM"
+          "description": "The position on the webpage where the banner should be displayed."
+        "isActive":
+          "type": "boolean"
+          "description": "Indicates whether the banner is currently active and being displayed to users."
+      "required":
+        - "bannerId"
+        - "title"
+        - "imageUrl"
+        - "linkUrl"
+        - "startDate"
+        - "endDate"
+    "BannerCreate":
+      "type": "object"
+      "properties":
+        "title":
+          "type": "string"
+          "description": "A short title or headline for the banner."
+        "imageUrl":
+          "type": "string"
+          "description": "URL of the banner image."
+        "linkUrl":
+          "type": "string"
+          "description": "URL to which the banner redirects when clicked."
+        "displayDuration":
+          "type": "integer"
+          "format": "int32"
+          "description": "Duration (in seconds) for which the banner should be displayed to the user."
+        "startDate":
+          "type": "string"
+          "format": "date-time"
+          "description": "Date and time when the banner starts being displayed."
+        "endDate":
+          "type": "string"
+          "format": "date-time"
+          "description": "Date and time when the banner stops being displayed."
+        "position":
+          "type": "string"
+          "enum":
+            - "TOP"
+            - "MIDDLE"
+            - "BOTTOM"
+          "description": "The position on the webpage where the banner should be displayed."
+        "isActive":
+          "type": "boolean"
+          "description": "Indicates whether the banner should start as active and be displayed to users."
+      "required":
+        - "title"
+        - "imageUrl"
+        - "linkUrl"
+        - "startDate"
+        - "endDate"
+    "Affiliate":
+      "type": "object"
+      "properties":
+        "affiliateId":
+          "type": "integer"
+          "format": "int64"
+          "description": "Unique identifier for the affiliate."
+        "name":
+          "type": "string"
+          "description": "Full name or company name of the affiliate."
+        "contactEmail":
+          "type": "string"
+          "format": "email"
+          "description": "Contact email address for the affiliate."
+        "referralCode":
+          "type": "string"
+          "description": "Unique code used by the affiliate for referrals."
+        "registrationDate":
+          "type": "string"
+          "format": "date-time"
+          "description": "Date and time when the affiliate was onboarded."
+        "totalReferrals":
+          "type": "integer"
+          "format": "int32"
+          "description": "Total number of referrals made by the affiliate."
+        "successfulReferrals":
+          "type": "integer"
+          "format": "int32"
+          "description": "Number of successful referrals that resulted in sales or signups."
+        "commissionEarned":
+          "type": "number"
+          "format": "float"
+          "description": "Total commission earned by the affiliate based on successful referrals."
+        "isActive":
+          "type": "boolean"
+          "description": "Indicates whether the affiliate is currently active."
+      "required":
+        - "affiliateId"
+        - "name"
+        - "contactEmail"
+        - "referralCode"
+        - "registrationDate"
+    "AffiliateCreate":
+      "type": "object"
+      "properties":
+        "name":
+          "type": "string"
+          "description": "Full name or company name of the affiliate."
+        "contactEmail":
+          "type": "string"
+          "format": "email"
+          "description": "Contact email address for the affiliate."
+        "referralCode":
+          "type": "string"
+          "description": "Unique code to be used by the affiliate for referrals. If not provided, the system could generate one."
+        "registrationDate":
+          "type": "string"
+          "format": "date-time"
+          "description": "Date and time when the affiliate is onboarded. If not provided, the system could use the current date-time."
+        "isActive":
+          "type": "boolean"
+          "default": true
+          "description": "Indicates whether the affiliate should start as active. Defaults to true if not provided."
+      "required":
+        - "name"
+        - "contactEmail"
+    "Partnership":
+      "type": "object"
+      "properties":
+        "partnershipId":
+          "type": "integer"
+          "format": "int64"
+          "description": "Unique identifier for the partnership."
+        "partnerName":
+          "type": "string"
+          "description": "Name of the partner organization or business."
+        "contactPerson":
+          "type": "string"
+          "description": "Name of the primary contact person at the partner organization."
+        "contactEmail":
+          "type": "string"
+          "format": "email"
+          "description": "Email address for communication with the partner."
+        "partnershipType":
+          "type": "string"
+          "enum":
+            - "Collaboration"
+            - "Integration"
+            - "Sponsorship"
+            - "Other"
+          "description": "Type or nature of the partnership."
+        "startDate":
+          "type": "string"
+          "format": "date-time"
+          "description": "Date and time when the partnership agreement started."
+        "endDate":
+          "type": "string"
+          "format": "date-time"
+          "description": "Date and time when the partnership agreement is set to end."
+        "terms":
+          "type": "string"
+          "description": "Detailed terms and conditions of the partnership."
+        "benefits":
+          "type": "string"
+          "description": "Benefits accrued from the partnership, for both parties."
+        "isActive":
+          "type": "boolean"
+          "description": "Indicates whether the partnership is currently active."
+      "required":
+        - "partnershipId"
+        - "partnerName"
+        - "contactEmail"
+        - "partnershipType"
+    "PartnershipCreate":
+      "type": "object"
+      "properties":
+        "partnerName":
+          "type": "string"
+          "description": "Name of the partner organization or business."
+        "contactPerson":
+          "type": "string"
+          "description": "Name of the primary contact person at the partner organization."
+        "contactEmail":
+          "type": "string"
+          "format": "email"
+          "description": "Email address for communication with the partner."
+        "partnershipType":
+          "type": "string"
+          "enum":
+            - "Collaboration"
+            - "Integration"
+            - "Sponsorship"
+            - "Other"
+          "description": "Type or nature of the partnership."
+        "startDate":
+          "type": "string"
+          "format": "date-time"
+          "description": "Date and time when the partnership agreement starts."
+        "endDate":
+          "type": "string"
+          "format": "date-time"
+          "description": "Date and time when the partnership agreement is set to end. Can be optional if the end date is not determined."
+        "terms":
+          "type": "string"
+          "description": "Detailed terms and conditions of the partnership."
+        "benefits":
+          "type": "string"
+          "description": "Benefits accrued from the partnership, for both parties."
+        "isActive":
+          "type": "boolean"
+          "default": true
+          "description": "Indicates whether the partnership should start as active. Defaults to true if not provided."
+      "required":
+        - "partnerName"
+        - "contactEmail"
+        - "partnershipType"
+        - "startDate"
