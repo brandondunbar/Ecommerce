@@ -567,8 +567,8 @@ Database views used:
 
 ## Backup and Restore Procedures
 
-To back up the database,
-To restore the database from a backup,
+To backup: `DatabaseBackupAndRestore.exe` backup
+To restore: `DatabaseBackupAndRestore.exe` restore `path\to\backup\file.sql`
 
 ## Performance Optimizations
 
