@@ -11,13 +11,13 @@
     "name": "AGPL 3.0"
     "url": "https://www.gnu.org/licenses/agpl-3.0.en.html"
 "servers":
-  -
-    "url": "http://localhost:8080"
+  - "url": "https://localhost:8080"
     "description": "Local development server"
 "security":
-  -
-    "BearerAuth": []
+  - "BearerAuth": []
+
 "paths":
+
   "/api/authorize":
     "post":
       "operationId": "AuthenticateUser"
@@ -3773,12 +3773,50 @@
           "description": "Unauthorized."
         "500":
           "description": "Internal server error."
+  "/api/admin/announcements":
+    get:
+      summary: Retrieve all announcements
+      tags:
+        - Admin
+      responses:
+        '200':
+          description: A list of announcements
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Announcement'
+        '500':
+          description: Internal server error
+
+    post:
+      summary: Create a new announcement
+      tags:
+        - Admin
+      requestBody:
+        description: Data for the new announcement
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AnnouncementCreate'
+      responses:
+        '201':
+          description: Announcement created successfully
+        '400':
+          description: Invalid request data
+        '500':
+          description: Internal server error
+
 "components":
+
   "securitySchemes":
     "BearerAuth":
       "type": "http"
       "scheme": "bearer"
       "bearerFormat": "JWT"
+
   "schemas":
     "UserRegistration":
       "type": "object"
@@ -5096,3 +5134,28 @@
         - "contactEmail"
         - "partnershipType"
         - "startDate"
+    "Announcement":
+      "type": "object"
+      "properties":
+        "id":
+          "type": "integer"
+          "description": "Unique identifier for the announcement"
+        "title":
+          "type": "string"
+          "description": "Title of the announcement"
+        "content":
+          "type": "string"
+          "description": "Detailed content of the announcement"
+        "dateCreated":
+          "type": "string"
+          "format": "date-time"
+          "description": "When the announcement was created"
+    "AnnouncementCreate":
+      "type": "object"
+      "properties":
+        "title":
+          "type": "string"
+          "description": "Title of the announcement"
+        "content":
+          "type": "string"
+          "description": "Detailed content of the announcement"
