@@ -33,8 +33,8 @@
 *     Promotions play a vital role in attracting customers and increasing sales. Keeping a clear record 
 *     of promotions helps in analyzing their impact on sales and making informed decisions in future campaigns.
 *
-* Maintained by: [Your Name]
-* Last Updated: [Your Date]
+* Maintained by: Brandon Dunbar
+* Last Updated: 8/13/23
 */
 
 
