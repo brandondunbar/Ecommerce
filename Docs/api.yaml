@@ -63,52 +63,86 @@
         "400":
           "description": "Bad request (e.g., missing required fields)"
   "/api/users/register":
-    "post":
-      "summary": "Register a new user"
-      "description": "Register a new user with the provided details. Once registered, the user can authenticate using the /api/authorize endpoint. <br>Note - Passwords must be at least 8 characters long, contain at least 1 number and 1 special character."
-      "tags":
+    post:
+      summary: "Register a new user"
+      description: "Register a new user with the provided details. Once registered, the user can authenticate using the /api/authorize endpoint. <br>Note - Passwords must be at least 8 characters long, contain at least 1 number and 1 special character."
+      tags:
         - "Users"
-      "requestBody":
-        "description": "User data needed for registration"
-        "required": true
-        "content":
-          "application/json":
-            "schema":
-              "type": "object"
-              "properties":
-                "username":
-                  "type": "string"
-                "email":
-                  "type": "string"
-                  "format": "email"
-                "password":
-                  "type": "string"
-                  "format": "password"
-      "responses":
-        "201":
-          "description": "User registered successfully"
-          "content":
-            "application/json":
-              "schema":
-                "type": "object"
-                "properties":
-                  "username":
-                    "type": "string"
-                  "email":
-                    "type": "string"
-                    "format": "email"
-          "links":
-            "AuthenticateUser":
-              "description": "After registering, you can authenticate to receive a JWT token."
-              "operationId": "AuthenticateUser"
-        "400":
-          "description": "Invalid request data"
-        "401":
-          "description": "Unauthorized"
-        "409":
-          "description": "Username or email already exists"
-        "500":
-          "description": "Internal server error"
+      requestBody:
+        description: "User data needed for registration"
+        required: true
+        content:
+          application/json:
+            schema:
+              type: "object"
+              properties:
+                username:
+                  type: "string"
+                email:
+                  type: "string"
+                  format: "email"
+                password:
+                  type: "string"
+                  format: "password"
+                first_name:
+                  type: "string"
+                last_name:
+                  type: "string"
+                date_of_birth:
+                  type: "string"
+                  format: "date"
+                phone_number:
+                  type: "string"
+                profile_image:
+                  type: "string"
+      responses:
+        '201':
+          description: "User registered successfully"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  user_id:
+                    type: "integer"
+                  username:
+                    type: "string"
+                  email:
+                    type: "string"
+                    format: "email"
+                  first_name:
+                    type: "string"
+                  last_name:
+                    type: "string"
+                  date_registered:
+                    type: "string"
+                    format: "date"
+                  date_of_birth:
+                    type: "string"
+                    format: "date"
+                  phone_number:
+                    type: "string"
+                  profile_image:
+                    type: "string"
+                  is_active:
+                    type: "boolean"
+                  role:
+                    type: "string"
+                  last_login:
+                    type: "string"
+                    format: "date-time"
+          links:
+            AuthenticateUser:
+              description: "After registering, you can authenticate to receive a JWT token."
+              operationId: "AuthenticateUser"
+        '400':
+          description: "Invalid request data"
+        '401':
+          description: "Unauthorized"
+        '409':
+          description: "Username or email already exists"
+        '500':
+          description: "Internal server error"
   "/api/users/login":
     "post":
       "summary": "Authenticate a user"
