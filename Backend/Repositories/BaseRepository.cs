@@ -1,0 +1,1 @@
+// Foundation for other repositories, providing CRUD operations.
