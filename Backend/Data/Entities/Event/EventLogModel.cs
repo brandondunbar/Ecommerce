@@ -10,11 +10,15 @@
 *         - event_log_id: The primary key identifier for the log entry.
 *         - user_id: Foreign key linking to the associated user in the Users table. Nullable as some events may not be directly linked to a user.
 *         - timestamp: Date and time marking when the event took place.
-*         - event_type: The type or category of the event (e.g., 'Login', 'Purchase', 'Error', 'System Update').
+*         - event_type: The type or category of the event.
+*         - event_action: Specific action associated with the event.
+*         - event_source: Source or origin of the event.
 *         - description: Detailed information or message associated with the event.
+*         - contextual_data: JSON structured data related to the event.
 *         - ip_address: The IP address from which the event was triggered.
+*         - geo_location: Geographical location inferred from the IP address.
 *         - user_agent: Details about the user's browser, OS, and device.
-*         - severity: Indicates the significance or urgency of the event, represented as an enumeration (e.g., 'Info', 'Warning', 'Error', 'Critical').
+*         - severity: Indicates the significance or urgency of the event, represented as an enumeration.
 * 
 *       - Relationships:
 *         - User: Navigation property to fetch details of the user associated with the event, if applicable.
@@ -39,9 +43,13 @@ NAMESPACE ECommerceApp.Data.Entities
 
         // Properties for the event log details
         DECLARE property DateTime timestamp
-        DECLARE property string event_type, with max length 100
+        DECLARE property Enum EventType event_type
+        DECLARE property Enum EventAction event_action
+        DECLARE property Enum EventSource event_source
         DECLARE property string description
+        DECLARE property JSONB contextual_data
         DECLARE property string ip_address, with max length 50
+        DECLARE property string geo_location, with max length 255
         DECLARE property string user_agent
         DECLARE property Enum EventSeverity severity
 
@@ -52,5 +60,20 @@ NAMESPACE ECommerceApp.Data.Entities
     DEFINE Enum EventSeverity
     {
         VALUES Info, Warning, Error, Critical
+    }
+
+    DEFINE Enum EventType
+    {
+        VALUES Login, Purchase, Error, SystemUpdate
+    }
+
+    DEFINE Enum EventAction
+    {
+        VALUES Create, Update, Delete
+    }
+
+    DEFINE Enum EventSource
+    {
+        VALUES Web, MobileApp, API, System
     }
 }

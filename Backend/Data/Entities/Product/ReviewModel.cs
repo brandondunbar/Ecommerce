@@ -13,7 +13,11 @@
 *         - rating: Rating given by the user (typically on a scale like 1 to 5).
 *         - title: The title of the review.
 *         - content: Detailed feedback or content of the review.
-*         - is_approved: Flag indicating if the review has been approved for display.
+*         - review_status: Review status (e.g., 'Pending', 'Approved', 'Rejected').
+*         - helpful_count: Count of times the review was marked as helpful.
+*         - not_helpful_count: Count of times the review was marked as not helpful.
+*         - vendor_reply: Reply from the vendor or admin to the review.
+*         - is_visible: Flag indicating if the review is visible to others.
 *         - created_at: Date and time when the review was created.
 *         - updated_at: Date and time when the review was last updated.
 * 
@@ -28,7 +32,6 @@
 * Last Updated: 8/17/23
 */
 
-
 NAMESPACE ECommerceApp.Data.Models
 {
     DEFINE class ReviewModel
@@ -39,11 +42,16 @@ NAMESPACE ECommerceApp.Data.Models
         DECLARE int rating
         DECLARE string title
         DECLARE string content
-        DECLARE bool is_approved
+        DECLARE Enum review_status with values ('Pending', 'Approved', 'Rejected')
+        DECLARE int helpful_count
+        DECLARE int not_helpful_count
+        DECLARE string vendor_reply
+        DECLARE bool is_visible
         DECLARE DateTime created_at
         DECLARE DateTime updated_at
 
         // Relationships:
+
         // 1. Relationship with Product
         DECLARE ProductModel product
 

@@ -14,7 +14,7 @@
 *         - description: Detailed description of the product.
 *         - price: Selling price of the product.
 *         - stock_quantity: Quantity of the product available in stock.
-*         - is_available: Flag indicating if the product is available for purchase.
+*         - product_status: Status of the product, which can have values like 'Available', 'Out of Stock'.
 *         - image_url: URL pointing to the product image.
 *         - sku: Stock Keeping Unit for the product.
 *         - created_at: Date and time when the product was added.
@@ -23,6 +23,10 @@
 *         - weight: Weight of the product.
 *         - dimensions: Dimensions of the product (e.g., "10x5x3" inches).
 *         - rating: Average customer rating for the product.
+*         - safety_stock_level: Minimum stock level before reordering.
+*         - meta_title: SEO meta title for the product page.
+*         - meta_description: SEO meta description for the product page.
+*         - slug: SEO-friendly URL slug for the product.
 * 
 *       - Relationships:
 *         - category: Navigation property to retrieve details of the category associated with the product.
@@ -46,7 +50,7 @@ NAMESPACE ECommerceApp.Data.Models
         DECLARE string description
         DECLARE decimal(10, 2) price
         DECLARE int stock_quantity
-        DECLARE bool is_available
+        DECLARE ENUM StatusType product_status
         DECLARE string image_url
         DECLARE string sku
         DECLARE DateTime created_at
@@ -55,9 +59,12 @@ NAMESPACE ECommerceApp.Data.Models
         DECLARE decimal(7, 2) weight
         DECLARE string dimensions
         DECLARE decimal(3, 2) rating
+        DECLARE int safety_stock_level
+        DECLARE string meta_title
+        DECLARE string meta_description
+        DECLARE string slug
 
         // Relationships:
-
         // 1. Relationship with Category
         DECLARE CategoryModel category
 

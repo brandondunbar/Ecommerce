@@ -11,15 +11,19 @@
 *         - user_id: Foreign key linking to the associated user in the Users table.
 *         - business_name: The registered business name of the vendor.
 *         - tax_id: The tax identification number of the vendor.
-*         - payment_info: Payment information or details provided by the vendor.
+*         - business_email: Business contact email for the vendor.
+*         - business_phone: Business contact phone number for the vendor.
 *         - shipping_policy: The vendor's policy regarding shipping of products.
 *         - return_policy: The vendor's policy regarding the return of products.
-*         - is_verified: Boolean indicating if the vendor has been verified by the platform.
+*         - status: Status of the vendor, represented as an enumeration (e.g., 'Pending', 'Verified', 'Suspended').
+*         - average_rating: Average rating or performance score for the vendor.
 *         - created_at: Timestamp indicating when the vendor was registered on the platform.
 *         - updated_at: Timestamp indicating the last update to the vendor's details.
+*         - verification_date: Date when the vendor was verified.
+*         - verified_by: ID or name of the user/system that verified the vendor.
 * 
 *       - Relationships:
-*         - userModel: Navigation property to retrieve details of the user associated with the vendor.
+*         - user: Navigation property to retrieve details of the user associated with the vendor.
 *         - products: Navigation property to retrieve the list of products associated with the vendor.
 * 
 * Dependencies:
@@ -37,15 +41,19 @@ NAMESPACE ECommerceApp.Data.Models
         DECLARE int user_id
         DECLARE string business_name
         DECLARE string tax_id
-        DECLARE string payment_info
+        DECLARE string business_email
+        DECLARE string business_phone
         DECLARE string shipping_policy
         DECLARE string return_policy
-        DECLARE bool is_verified
+        DECLARE Enum status
+        DECLARE decimal(3, 2) average_rating
         DECLARE timestamp created_at
         DECLARE timestamp updated_at
+        DECLARE date verification_date, OPTIONAL
+        DECLARE string verified_by, OPTIONAL
 
         // Relationships for fetching details related to the vendor
-        DECLARE User userModel  // Relationship to the User model
+        DECLARE User user  // Relationship to the User model
         DECLARE List<ProductModel> products  // List of products associated with the vendor
     }
 }
